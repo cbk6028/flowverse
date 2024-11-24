@@ -22,30 +22,30 @@ jobs:
         # type: [ web, macos, windows, linux, android ]
         type: [ linux ]
         include:
-          - type: web
-            os: macos-latest
-            path: build
-            output: web
+          # - type: web
+          #   os: macos-latest
+          #   path: build
+          #   output: web
 
-          - type: macos
-            os: macos-latest
-            path: build/macos/Build/Products/Release
-            output: ${{ github.event.repository.name }}.app
+          # - type: macos
+          #   os: macos-latest
+          #   path: build/macos/Build/Products/Release
+          #   output: ${{ github.event.repository.name }}.app
 
-          - type: windows
-            os: windows-latest
-            path: build\windows\x64\runner
-            output: Release
+          # - type: windows
+          #   os: windows-latest
+          #   path: build\windows\x64\runner
+          #   output: Release
 
           - type: linux
             os: ubuntu-latest
             path: build/linux/x64/release
             output: bundle
 
-          - type: android
-            os: macos-latest
-            path: build/app/outputs
-            output: flutter-apk
+          # - type: android
+          #   os: macos-latest
+          #   path: build/app/outputs
+          #   output: flutter-apk
 
     steps:
       - name: 代码检出
