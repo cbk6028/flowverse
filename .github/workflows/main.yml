@@ -58,39 +58,41 @@ jobs:
       #     distribution: "zulu"
       #     java-version: "17"
 
-      - name: Linux环境
-        if: ${{ matrix.type == 'linux' }}
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y ninja-build libgtk-3-dev
+      # 2
+      # - name: Linux环境
+      #   if: ${{ matrix.type == 'linux' }}
+      #   run: |
+      #     sudo apt-get update -y
+      #     sudo apt-get install -y ninja-build libgtk-3-dev
 
-      - name: FlutterAction
-        uses: subosito/flutter-action@v2
-        with:
-          channel: "stable"
+      # - name: FlutterAction
+      #   uses: subosito/flutter-action@v2
+      #   with:
+      #     channel: "stable"
 
-      - name: 下载依赖
-        run: flutter pub get
+      # - name: 下载依赖
+      #   run: flutter pub get
 
-      - name: 生成代码
-        run: dart run build_runner build
+      # - name: 生成代码
+      #   run: dart run build_runner build
 
-      - name: 获取版本号
-        if: ${{ matrix.type != 'windows' }}
-        run: |
-          echo "version=$(awk -F': ' '/version:/ {gsub("\\+", "-", $2); print $2}' pubspec.yaml)" >> "$GITHUB_ENV"
+      # - name: 获取版本号
+      #   if: ${{ matrix.type != 'windows' }}
+      #   run: |
+      #     echo "version=$(awk -F': ' '/version:/ {gsub("\\+", "-", $2); print $2}' pubspec.yaml)" >> "$GITHUB_ENV"
 
-      - name: 获取版本号(windows)
-        if: ${{ matrix.type == 'windows' }}
-        shell: pwsh
-        run: |
-          $version = (Get-Content pubspec.yaml -Raw) -match 'version:\s*([^\s]+)' | Out-Null
-          $version = $Matches[1] -replace '\+', '-'
-          echo "version=$version" | Out-File -Append -Encoding utf8 -FilePath $Env:GITHUB_ENV
+      # - name: 获取版本号(windows)
+      #   if: ${{ matrix.type == 'windows' }}
+      #   shell: pwsh
+      #   run: |
+      #     $version = (Get-Content pubspec.yaml -Raw) -match 'version:\s*([^\s]+)' | Out-Null
+      #     $version = $Matches[1] -replace '\+', '-'
+      #     echo "version=$version" | Out-File -Append -Encoding utf8 -FilePath $Env:GITHUB_ENV
 
-      - name: 打印版本号
-        run: |
-          echo "version: ${{ env.version }}"
+      # - name: 打印版本号
+      #   run: |
+      #     echo "version: ${{ env.version }}"
+      # 2
 
       # - name: 打包WEB
       #   if: ${{ matrix.type == 'web' }}
@@ -114,9 +116,10 @@ jobs:
       #   shell: pwsh
       #   run: flutter build windows
 
-      - name: 打包Linux
-        if: ${{ matrix.type == 'linux' }}
-        run: flutter build linux
+      # 1
+      # - name: 打包Linux
+      #   if: ${{ matrix.type == 'linux' }}
+      #   run: flutter build linux
 
       # - name: 打包安卓
       #   if: ${{ matrix.type == 'android' }}
@@ -127,17 +130,17 @@ jobs:
       #     KEYSTORE_FILE: ${{ secrets.KEYSTORE_FILE }}
       #     KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
 
+      # 1
+      # - name: 压缩产物
+      #   if: ${{ matrix.type != 'windows' && matrix.type != 'android' }}
+      #   run: |
+      #     tar -czvf ${{ github.event.repository.name }}-${{ matrix.type }}.tar.gz -C ${{ matrix.path }} ${{ matrix.output }}
 
-      - name: 压缩产物
-        if: ${{ matrix.type != 'windows' && matrix.type != 'android' }}
-        run: |
-          tar -czvf ${{ github.event.repository.name }}-${{ matrix.type }}.tar.gz -C ${{ matrix.path }} ${{ matrix.output }}
-
-      - name: 压缩产物(windows)
-        if: ${{ matrix.type == 'windows' }}
-        shell: pwsh
-        run: |
-          Compress-Archive -Path '${{ matrix.path }}\${{ matrix.output }}' -DestinationPath '${{ github.event.repository.name }}-${{ matrix.type }}.zip'
+      # - name: 压缩产物(windows)
+      #   if: ${{ matrix.type == 'windows' }}
+      #   shell: pwsh
+      #   run: |
+      #     Compress-Archive -Path '${{ matrix.path }}\${{ matrix.output }}' -DestinationPath '${{ github.event.repository.name }}-${{ matrix.type }}.zip'
 
       - name: Release
         uses: ncipollo/release-action@v1
