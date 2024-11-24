@@ -19,44 +19,44 @@ jobs:
 
     strategy:
       matrix:
-        # type: [ web, macos, windows, linux, android ]
-        type: [ linux ]
+        # type: [ macos, windows, linux, android ]
+        type: [  macos, windows, linux ]
         include:
           # - type: web
           #   os: macos-latest
           #   path: build
           #   output: web
 
-          # - type: macos
-          #   os: macos-latest
-          #   path: build/macos/Build/Products/Release
-          #   output: ${{ github.event.repository.name }}.app
+          - type: macos
+            os: macos-latest
+            path: build/macos/Build/Products/Release
+            output: ${{ github.event.repository.name }}.app
 
-          # - type: windows
-          #   os: windows-latest
-          #   path: build\windows\x64\runner
-          #   output: Release
+          - type: windows
+            os: windows-latest
+            path: build\windows\x64\runner
+            output: Release
 
           - type: linux
             os: ubuntu-latest
             path: build/linux/x64/release
             output: bundle
 
-          # - type: android
-          #   os: macos-latest
-          #   path: build/app/outputs
-          #   output: flutter-apk
+          - type: android
+            os: macos-latest
+            path: build/app/outputs
+            output: flutter-apk
 
     steps:
       - name: 代码检出
         uses: actions/checkout@v4
 
-      # - name: 安卓环境
-      #   uses: actions/setup-java@v4
-      #   if: ${{ matrix.type == 'android' }}
-      #   with:
-      #     distribution: "zulu"
-      #     java-version: "17"
+      - name: 安卓环境
+        uses: actions/setup-java@v4
+        if: ${{ matrix.type == 'android' }}
+        with:
+          distribution: "zulu"
+          java-version: "17"
 
       # 2
       - name: Linux环境
@@ -107,14 +107,14 @@ jobs:
       #     folder: build/web
       #     clean: true
 
-      # - name: 打包Macos
-      #   if: ${{ matrix.type == 'macos' }}
-      #   run: flutter build macos
+      - name: 打包Macos
+        if: ${{ matrix.type == 'macos' }}
+        run: flutter build macos
 
-      # - name: 打包Windows
-      #   if: ${{ matrix.type == 'windows' }}
-      #   shell: pwsh
-      #   run: flutter build windows
+      - name: 打包Windows
+        if: ${{ matrix.type == 'windows' }}
+        shell: pwsh
+        run: flutter build windows
 
       # 1
       - name: 打包Linux
@@ -136,11 +136,11 @@ jobs:
         run: |
           tar -czvf ${{ github.event.repository.name }}-${{ matrix.type }}.tar.gz -C ${{ matrix.path }} ${{ matrix.output }}
 
-      # - name: 压缩产物(windows)
-      #   if: ${{ matrix.type == 'windows' }}
-      #   shell: pwsh
-      #   run: |
-      #     Compress-Archive -Path '${{ matrix.path }}\${{ matrix.output }}' -DestinationPath '${{ github.event.repository.name }}-${{ matrix.type }}.zip'
+      - name: 压缩产物(windows)
+        if: ${{ matrix.type == 'windows' }}
+        shell: pwsh
+        run: |
+          Compress-Archive -Path '${{ matrix.path }}\${{ matrix.output }}' -DestinationPath '${{ github.event.repository.name }}-${{ matrix.type }}.zip'
 
       - name: Release
         uses: ncipollo/release-action@v1
