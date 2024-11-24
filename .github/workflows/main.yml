@@ -146,4 +146,4 @@ jobs:
           draft: false
           artifacts: "*.tar.gz,*.zip,build/app/outputs/flutter-apk/*.apk"
           allowUpdates: true
-          token: ${{ secrets.TOKEN }}
+          token: ${{ secrets.Release }}
