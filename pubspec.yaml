@@ -41,6 +41,7 @@ dependencies:
   pdfrx: 1.0.90
   path_provider: ^2.1.5
   provider: ^6.1.2
+  shared_preferences: ^2.3.3
 
 dev_dependencies:
   flutter_test:
