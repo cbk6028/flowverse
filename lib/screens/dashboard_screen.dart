@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/cupertino.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // 导入 shared_preferences
+import 'package:pdfrx/pdfrx.dart';
 
 import 'reader_screen.dart'; // 导入阅读器页面
 
@@ -146,7 +149,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     onPressed: () async {
                       // 打开文件选择器
-                      FilePickerResult? result = await FilePicker.platform.pickFiles(
+                      FilePickerResult? result =
+                          await FilePicker.platform.pickFiles(
                         type: FileType.custom,
                         allowedExtensions: ['pdf'], // 根据需要添加允许的文件类型
                       );
@@ -212,9 +216,124 @@ class CupertinoListTile extends StatelessWidget {
   }
 }
 
+class PdfThumbnail extends StatefulWidget {
+  final String filePath;
+
+  const PdfThumbnail({Key? key, required this.filePath}) : super(key: key);
+
+  @override
+  State<PdfThumbnail> createState() => _PdfThumbnailState();
+}
+
+class _PdfThumbnailState extends State<PdfThumbnail> {
+  PdfDocument? _document;
+  PdfPage? _page;
+  bool _isLoading = true;
+  String? _error;
+  ui.Image? _thumbnail;
+  
+
+  @override
+  void initState() {
+    super.initState();
+    _loadThumbnail();
+  }
+
+  Future<void> _loadThumbnail() async {
+    try {
+      _document = await PdfDocument.openFile(widget.filePath);
+      _page = await _document!.pages[0];
+      
+      // 使用固定的缩略图尺寸
+      final targetWidth = 200.0;
+      final targetHeight = (targetWidth / _page!.width * _page!.height);
+      
+      final pdfImage = await _page!.render(
+
+         fullWidth: targetWidth,
+        fullHeight: targetHeight,
+      );
+
+      // if (pdfImage != null) {
+      //   final bytes = pdfImage.pixels;
+      //   final codec = await ui.instantiateImageCodec(bytes);
+      //   final frameInfo = await codec.getNextFrame();
+      //   _thumbnail = frameInfo.image;
+      //   pdfImage.dispose();
+      // }
+
+      _thumbnail = await pdfImage?.createImage();
+
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading thumbnail: $e');
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _thumbnail?.dispose();
+    _document?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Container(
+        decoration: BoxDecoration(
+          color: CupertinoColors.systemGrey6,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+        ),
+        child: Center(
+          child: CupertinoActivityIndicator(),
+        ),
+      );
+    }
+
+    if (_error != null || _thumbnail == null) {
+      return Container(
+        decoration: BoxDecoration(
+          color: CupertinoColors.systemGrey6,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+        ),
+        child: Center(
+          child: Icon(CupertinoIcons.doc_text_fill,
+              size: 48, color: CupertinoColors.systemGrey),
+        ),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: CupertinoColors.systemGrey6,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+        child: RawImage(
+          image: _thumbnail,
+          fit: BoxFit.contain,
+        ),
+      ),
+    );
+  }
+}
+
 class BookshelfWidget extends StatelessWidget {
   final List<String> books;
-  final Function(String) onDelete; // 添加删除回调
+  final Function(String) onDelete;
 
   BookshelfWidget({required this.books, required this.onDelete});
 
@@ -229,18 +348,18 @@ class BookshelfWidget extends StatelessWidget {
           )
         : GridView.builder(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3, // 每行显示3本书
+              crossAxisCount: 5,
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
+              childAspectRatio: 0.7,
             ),
             itemCount: books.length,
             itemBuilder: (context, index) {
               String filePath = books[index];
-              String fileName = filePath.split('/').last; // 获取文件名
+              String fileName = filePath.split('/').last;
 
               return GestureDetector(
                 onTap: () {
-                  // 跳转到阅读器页面，传递文件路径
                   Navigator.push(
                     context,
                     CupertinoPageRoute(
@@ -252,17 +371,35 @@ class BookshelfWidget extends StatelessWidget {
                   children: [
                     Container(
                       decoration: BoxDecoration(
-                        color: CupertinoColors.systemBrown,
+                        color: CupertinoColors.systemGrey6,
                         borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: CupertinoColors.systemGrey.withOpacity(0.2),
+                            blurRadius: 4,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      child: Center(
-                        child: Text(
-                          fileName,
-                          style: TextStyle(color: CupertinoColors.white),
-                          textAlign: TextAlign.center,
-                          overflow: TextOverflow.ellipsis, // 超出部分省略
-                          maxLines: 2,
-                        ),
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: PdfThumbnail(filePath: filePath),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(
+                              fileName,
+                              style: TextStyle(
+                                color: CupertinoColors.black,
+                                fontSize: 12,
+                              ),
+                              textAlign: TextAlign.center,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 2,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     Positioned(
@@ -272,10 +409,16 @@ class BookshelfWidget extends StatelessWidget {
                         onTap: () {
                           onDelete(filePath);
                         },
-                        child: Icon(
-                          CupertinoIcons.xmark_circle_fill,
-                          color: CupertinoColors.destructiveRed,
-                          size: 24,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: CupertinoColors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            CupertinoIcons.xmark_circle_fill,
+                            color: CupertinoColors.destructiveRed,
+                            size: 24,
+                          ),
                         ),
                       ),
                     ),

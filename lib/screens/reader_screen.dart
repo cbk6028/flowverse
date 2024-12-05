@@ -446,6 +446,11 @@ class _MyHomePageState extends State<MyHomePage> {
               onPressed: () => appState.savePdf(context),
               child: const Icon(CupertinoIcons.arrow_down_doc),
             ),
+            // CupertinoButton(
+            //   padding: EdgeInsets.zero,
+            //   onPressed: () => appState.printPdf(context),
+            //   child: const Icon(CupertinoIcons.printer),
+            // ),
           ],
         ),
         // 新增：高亮按钮放在中间
