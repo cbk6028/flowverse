@@ -1,6 +1,6 @@
 {
-    "name": "pdf_reader",
-    "short_name": "pdf_reader",
+    "name": "FlowVerse",
+    "short_name": "FlowVerse",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

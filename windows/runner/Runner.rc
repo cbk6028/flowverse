@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "pdf_reader" "\0"
+            VALUE "FileDescription", "FlowVerse" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "pdf_reader" "\0"
+            VALUE "InternalName", "flowverse" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2024 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "pdf_reader.exe" "\0"
-            VALUE "ProductName", "pdf_reader" "\0"
+            VALUE "OriginalFilename", "FlowVerse.exe" "\0"
+            VALUE "ProductName", "FlowVerse" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
