@@ -31,17 +31,17 @@ class SideBar extends StatelessWidget {
       padding: const EdgeInsets.all(8.0),
       child:
           switch ( viewModel.index) {
-        0 => const Outline(),
-        1 => const Expanded(child: Center(child: Text('批注'))),
-        2 => const Expanded(child: Center(child: Text('书签'))),
-        3 => const Expanded(child: Center(child: Text('缩略图'))),
-        4 => Expanded(
-              child: Column(
+        0 =>  Outline(),
+        1 =>  child: Center(child: Text('批注')),
+        2 =>  child: Center(child: Text('书签'))),
+        3 =>  child: Center(child: Text('缩略图')),
+        4 =>
+          Column(
             children: [
               const SearchBar(),
               if (viewModel.isSearching) const SearchSection()
             ],
-          )),
+          ),
         _ => Container(),
       },
 
