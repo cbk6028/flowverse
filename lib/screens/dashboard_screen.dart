@@ -1,58 +1,47 @@
-import 'dart:convert';
-import 'dart:io';
 import 'dart:ui' as ui;
+import 'package:flowverse/models/bookshelf.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // 导入 shared_preferences
+import 'package:provider/provider.dart';
 import 'package:pdfrx/pdfrx.dart';
 
 import 'reader_screen.dart'; // 导入阅读器页面
+import '../view_models/dashboard_vm.dart';
 
-class DashboardScreen extends StatefulWidget {
+
+class DashboardScreen extends StatelessWidget {
+  const DashboardScreen({super.key});
+
   @override
-  _DashboardScreenState createState() => _DashboardScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => DashboardViewModel(),
+      child: DashboardScreenInner(),
+    );
+  }
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+
+class DashboardScreenInner extends StatefulWidget {
+  const DashboardScreenInner({super.key});
+
+  @override
+  DashboardScreenInnerState createState() => DashboardScreenInnerState();
+}
+
+class DashboardScreenInnerState extends State<DashboardScreenInner> {
   // 存储书籍列表的数组，保存文件路径
-  List<String> books = [];
+  // List<String> books = [];
 
   // SharedPreferences 键名
-  final String keyBooks = 'bookshelf';
+  // final String keyBooks = 'bookshelf';
 
   @override
   void initState() {
     super.initState();
-    _loadBooks(); // 加载书架信息
-  }
-
-  // 加载书架信息
-  Future<void> _loadBooks() async {
-    try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? jsonData = prefs.getString(keyBooks);
-      if (jsonData != null) {
-        List<dynamic> decodedData = json.decode(jsonData);
-        setState(() {
-          books = List<String>.from(decodedData);
-        });
-      }
-    } catch (e) {
-      // 如果遇到错误，暂时不处理
-      print('读取书架信息失败: $e');
-    }
-  }
-
-  // 保存书架信息
-  Future<void> _saveBooks() async {
-    try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String jsonData = json.encode(books);
-      await prefs.setString(keyBooks, jsonData);
-    } catch (e) {
-      // 如果遇到错误，暂时不处理
-      print('保存书架信息失败: $e');
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<DashboardViewModel>(context, listen: false).loadBooks();
+    });
   }
 
   // 显示提示对话框
@@ -77,16 +66,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // 添加删除书籍的方法
-  void _deleteBook(String filePath) {
-    setState(() {
-      books.remove(filePath);
-    });
-    _saveBooks();
-  }
-
   @override
   Widget build(BuildContext context) {
+    final dashboardState = context.watch<DashboardViewModel>();
+
     return CupertinoPageScaffold(
       child: Row(
         children: [
@@ -129,10 +112,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: BookshelfWidget(
-                    books: books,
-                    onDelete: _deleteBook, // 传递删除回调
-                  ),
+                  child: BookshelfWidget(),
                 ),
                 // 浮动的“添加”按钮
                 Positioned(
@@ -158,20 +138,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         String filePath = result.files.single.path!;
                         String fileName = result.files.single.name;
 
-                        debugPrint(books.toString());
                         print(filePath);
                         // 检查文件是否已经存在
-                        if (books.contains(filePath)) {
+                        if (dashboardState.isBookExists(filePath)) {
                           // 显示提示对话框
                           await _showAlreadyExistsDialog(fileName);
                         } else {
-                          setState(() {
-                            debugPrint('添加成功');
-                            books.add(filePath); // 存储文件路径
-                          });
-
-                          // 保存更新后的书架信息
-                          _saveBooks();
+                          debugPrint('添加成功');
+                          final int id = dashboardState.books.length;
+                          dashboardState.addBook(
+                              Book(id + 1, fileName, filePath, '')); // 存储文件路径
                         }
                       }
                     },
@@ -216,6 +192,9 @@ class CupertinoListTile extends StatelessWidget {
   }
 }
 
+// ##################################################################
+// 书籍封面
+
 class PdfThumbnail extends StatefulWidget {
   final String filePath;
 
@@ -231,7 +210,6 @@ class _PdfThumbnailState extends State<PdfThumbnail> {
   bool _isLoading = true;
   String? _error;
   ui.Image? _thumbnail;
-  
 
   @override
   void initState() {
@@ -243,14 +221,13 @@ class _PdfThumbnailState extends State<PdfThumbnail> {
     try {
       _document = await PdfDocument.openFile(widget.filePath);
       _page = await _document!.pages[0];
-      
+
       // 使用固定的缩略图尺寸
       final targetWidth = 200.0;
       final targetHeight = (targetWidth / _page!.width * _page!.height);
-      
-      final pdfImage = await _page!.render(
 
-         fullWidth: targetWidth,
+      final pdfImage = await _page!.render(
+        fullWidth: targetWidth,
         fullHeight: targetHeight,
       );
 
@@ -263,7 +240,6 @@ class _PdfThumbnailState extends State<PdfThumbnail> {
       // }
 
       _thumbnail = await pdfImage?.createImage();
-
 
       if (mounted) {
         setState(() {
@@ -332,13 +308,13 @@ class _PdfThumbnailState extends State<PdfThumbnail> {
 }
 
 class BookshelfWidget extends StatelessWidget {
-  final List<String> books;
-  final Function(String) onDelete;
-
-  BookshelfWidget({required this.books, required this.onDelete});
+  BookshelfWidget();
 
   @override
   Widget build(BuildContext context) {
+    final dashboardState = context.watch<DashboardViewModel>();
+    var books = dashboardState.books;
+
     return books.isEmpty
         ? Center(
             child: Text(
@@ -355,8 +331,8 @@ class BookshelfWidget extends StatelessWidget {
             ),
             itemCount: books.length,
             itemBuilder: (context, index) {
-              String filePath = books[index];
-              String fileName = filePath.split('/').last;
+              String filePath = books[index].path;
+              String fileName = books[index].name;
 
               return GestureDetector(
                 onTap: () {
@@ -406,8 +382,8 @@ class BookshelfWidget extends StatelessWidget {
                       top: 4,
                       right: 4,
                       child: GestureDetector(
-                        onTap: () {
-                          onDelete(filePath);
+                        onTap: () async {
+                          await dashboardState.removeBook(books[index]);
                         },
                         child: Container(
                           decoration: BoxDecoration(

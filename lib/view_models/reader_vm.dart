@@ -163,35 +163,6 @@ class ReaderViewModel extends ChangeNotifier {
     }
   }
 
-  // Future<void> printPdf(BuildContext context) async {
-  //   if (selectedFile == null) return;
-
-  //   try {
-  //     final pdfData = await selectedFile!.readAsBytes();
-  //     await Printing.layoutPdf(
-  //       onLayout: (_) async => pdfData,
-  //       name: selectedFile!.path.split('/').last,
-  //     );
-  //   } catch (e) {
-  //     showCupertinoDialog(
-  //       context: context,
-  //       builder: (BuildContext context) {
-  //         return CupertinoAlertDialog(
-  //           content: Text('打印失败: $e'),
-  //           actions: [
-  //             CupertinoDialogAction(
-  //               child: Text('确定'),
-  //               onPressed: () {
-  //                 Navigator.of(context).pop();
-  //               },
-  //             ),
-  //           ],
-  //         );
-  //       },
-  //     );
-  //   }
-  // }
-
   void toggleSearch(String query) {
     _isSearching = query.isNotEmpty;
     _searchQuery = query;

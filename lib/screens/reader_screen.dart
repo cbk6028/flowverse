@@ -7,7 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:synchronized/extension.dart';
 
-import '../viewmodels/reader_vm.dart';
+import '../view_models/reader_vm.dart';
 
 class _PdfPageTextRefCount {
   _PdfPageTextRefCount(this.pageText);
@@ -284,6 +284,14 @@ class _MyHomePageState extends State<MyHomePage> {
       // appState.setSelectedFile(File(widget.selectedFilePath));
       // _selectedFile = File(widget.selectedFilePath);
       // });
+
+      // 设置初始缩放
+      // final size = MediaQuery.of(context).size;
+      // await Provider.of<ReaderViewModel>(context, listen: false).pdfViewerController.setZoom(
+      //   Offset(size.width / 2, size.height / 2), // 设置缩放的中心点为屏幕中心
+      //   0.2, // 设置缩放比例，1.0 表示原始大小
+      // );
+  // Provider.of<ReaderViewModel>(context, listen: false).zoomUp();
     });
   }
 
@@ -323,19 +331,19 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     // 搜索框和搜索结果视图
-    Widget buildSearchSection() {
-      return Expanded(
-        child: TextSearchView(
-          textSearcher: appState.textSearcher,
-          onSearchEmpty: () {
-            setState(() {
-              // 当搜索框为空时，显示大纲
-              appState.toggleOutline();
-            });
-          },
-        ),
-      );
-    }
+    // Widget buildSearchSection() {
+    //   return Expanded(
+    //     child: TextSearchView(
+    //       textSearcher: appState.textSearcher,
+    //       onSearchEmpty: () {
+    //         setState(() {
+    //           // 当搜索框为空时，显示大纲
+    //           appState.toggleOutline();
+    //         });
+    //       },
+    //     ),
+    //   );
+    // }
 
     // 大纲列表
     Widget buildOutlineList(List<PdfOutlineNode> nodes, {double indent = 0}) {
@@ -438,7 +446,7 @@ class _MyHomePageState extends State<MyHomePage> {
               padding: EdgeInsets.zero,
               onPressed: () => appState.toggleDarkMode(),
               child: Icon(appState.darkMode
-                    ? CupertinoIcons.moon
+                  ? CupertinoIcons.moon
                   : CupertinoIcons.sun_max),
             ),
             CupertinoButton(
@@ -507,7 +515,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
     Widget buildViewer() {
       return ColorFiltered(
-        colorFilter:  ColorFilter.mode(Colors.white, appState.darkMode ? BlendMode.difference : BlendMode.dst),
+        colorFilter: ColorFilter.mode(Colors.white,
+            appState.darkMode ? BlendMode.difference : BlendMode.dst),
         child: PdfViewer.file(
           appState.selectedFile!.path,
           controller: controller,
@@ -527,7 +536,8 @@ class _MyHomePageState extends State<MyHomePage> {
               appState.textSearcher.pageTextMatchPaintCallback,
               appState.paintMarkers,
             ],
-            viewerOverlayBuilder: (BuildContext context, Size size, linkHandler) {
+            viewerOverlayBuilder:
+                (BuildContext context, Size size, linkHandler) {
               return [
                 Stack(
                   children: [
@@ -735,7 +745,7 @@ class _SideBarState extends State<SideBar> {
           SearchBar(),
           if (viewModel.isSearching)
             // Container()
-          SearchSection()
+            SearchSection()
           else ...[
             // 使用 spread operator (...) 来展开多个 widget
             CupertinoSlidingSegmentedControl<int>(

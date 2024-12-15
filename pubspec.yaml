@@ -38,7 +38,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   file_picker: ^8.1.4
-  pdfrx: ^1.0.93
+  pdfrx: ^1.0.96
   path_provider: ^2.1.5
   provider: ^6.1.2
   shared_preferences: ^2.3.3
