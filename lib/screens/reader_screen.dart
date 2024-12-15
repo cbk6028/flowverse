@@ -345,7 +345,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: Row(
                     children: [
                       LeftSidebar(),
-                      if (appState.isSidebarVisible) SideBar(),
+                      if (appState.isSidebarVisible) const SideBar(),
                       Expanded(
                         flex: 3,
                         child: Stack(

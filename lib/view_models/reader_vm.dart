@@ -23,7 +23,7 @@ class ReaderViewModel extends ChangeNotifier {
   int index = -1;
 
   var currentPage = 0;
-  bool isOutlineVisible = false;
+  // bool isOutlineVisible = false;
   bool isSidebarVisible = false;
   File? selectedFile;
   List<PdfOutlineNode>? outline;
@@ -71,25 +71,12 @@ class ReaderViewModel extends ChangeNotifier {
   // }
 
   void toggleOutline(int index) {
-    // this.index = index;
     if (this.index == index) {
       isSidebarVisible = !isSidebarVisible;
     }else {
       isSidebarVisible = true;
       this.index = index;
     }
-    // if (index == 0) {
-    //   // isOutlineVisible = !isOutlineVisible;
-
-    // } else if (index == 1) {
-    //   isAnnotationVisible = !isAnnotationVisible;
-    // } else if (index == 2) {
-    //   isBookmarkVisible = !isBookmarkVisible;
-    // } else if (index == 3) {
-    //   isThumbnailVisible = !isThumbnailVisible;
-    // } else if (index == 4) {
-    //   _isSearching = !_isSearching;
-    // }
 
     print('toggleOutline: $isSidebarVisible');
     // print('outline: $outline');

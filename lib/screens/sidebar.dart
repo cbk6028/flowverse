@@ -10,30 +10,27 @@ import '../view_models/reader_vm.dart';
 // 侧边栏
 // 有大纲，搜索等功能
 
-class SideBar extends StatefulWidget {
+class SideBar extends StatelessWidget {
   const SideBar({super.key});
 
-  @override
-  State<SideBar> createState() => _SideBarState();
-}
-
-class _SideBarState extends State<SideBar> {
   // int? index = 0; // 移到类级别
 
   @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<ReaderViewModel>();
-    var _index = viewModel.index;
-    if (!viewModel.isSidebarVisible || viewModel.outline == null) {
-      return Container();
+    // 
+    if (viewModel.outline == null) {
+      return Container(
+        width: 250,
+        padding: const EdgeInsets.all(8.0),
+        child: const Text('没有目录')
+      );
     }
     return Container(
       width: 250,
       padding: const EdgeInsets.all(8.0),
       child:
-          // Column(
-          //   children: [
-          switch (_index) {
+          switch ( viewModel.index) {
         0 => const Outline(),
         1 => const Expanded(child: Center(child: Text('批注'))),
         2 => const Expanded(child: Center(child: Text('书签'))),
@@ -42,7 +39,6 @@ class _SideBarState extends State<SideBar> {
               child: Column(
             children: [
               const SearchBar(),
-              // SearchSection(),
               if (viewModel.isSearching) const SearchSection()
             ],
           )),
