@@ -14,11 +14,11 @@ class DashboardViewModel extends ChangeNotifier {
   }
 
   // 添加删除书籍的方法
-  Future<void> deleteBook(int id) async {
-    books.removeWhere((book) => book.id == id);
-    notifyListeners();
-    await model.saveBooks();
-  }
+  // Future<void> deleteBook(int id) async {
+  //   books.removeWhere((book) => book.id == id);
+  //   notifyListeners();
+  //   await model.saveBooks();
+  // }
 
   bool isBookExists(String bookPath) {
     return books.any((book) => book.path == bookPath);
@@ -35,7 +35,7 @@ class DashboardViewModel extends ChangeNotifier {
   }
 
   Future<bool> removeBook(Book book) async {
-    if (isBookExists(book.name)) {
+    if (isBookExists(book.path)) {
       books.remove(book);
       notifyListeners();
       await model.saveBooks();

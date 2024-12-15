@@ -1,4 +1,5 @@
 import 'package:file_picker/file_picker.dart';
+import 'package:flowverse/view_models/marker_vm.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pdfrx/pdfrx.dart';
@@ -14,14 +15,16 @@ class Marker {
   Marker(this.color, this.ranges);
 }
 
-
 class ReaderViewModel extends ChangeNotifier {
   final PdfViewerController pdfViewerController = PdfViewerController();
 
   bool darkMode = false;
 
+  int index = -1;
+
   var currentPage = 0;
   bool isOutlineVisible = false;
+  bool isSidebarVisible = false;
   File? selectedFile;
   List<PdfOutlineNode>? outline;
 
@@ -31,12 +34,9 @@ class ReaderViewModel extends ChangeNotifier {
 
   final ScrollController scrollController = ScrollController();
 
-  var textSelections = [];
+  final MarkerVewModel markerVm = MarkerVewModel();
 
-  final Map<int, List<Marker>> _markers = {};
-
-  bool _isHighlightButtonVisible = false;
-  PdfTextRanges? _currentSelection;
+  
 
   late final textSearcher = PdfTextSearcher(pdfViewerController)
     ..addListener(_update);
@@ -45,42 +45,54 @@ class ReaderViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  List<Marker> get markers => _markers.values.expand((e) => e).toList();
-
-  bool get isHighlightButtonVisible => _isHighlightButtonVisible;
 
   void toggleDarkMode() {
     darkMode = !darkMode;
     notifyListeners();
   }
-  void addMarker(int pageNumber, Marker marker) {
-    if (_markers.containsKey(pageNumber)) {
-      _markers[pageNumber]!.add(marker);
-    } else {
-      _markers[pageNumber] = [marker];
+
+  // void addMarker(int pageNumber, Marker marker) {
+  //   if (_markers.containsKey(pageNumber)) {
+  //     _markers[pageNumber]!.add(marker);
+  //   } else {
+  //     _markers[pageNumber] = [marker];
+  //   }
+  //   notifyListeners();
+  // }
+
+  // void removeMarker(int pageNumber, Marker marker) {
+  //   if (_markers.containsKey(pageNumber)) {
+  //     _markers[pageNumber]!.remove(marker);
+  //     if (_markers[pageNumber]!.isEmpty) {
+  //       _markers.remove(pageNumber);
+  //     }
+  //     notifyListeners();
+  //   }
+  // }
+
+  void toggleOutline(int index) {
+    // this.index = index;
+    if (this.index == index) {
+      isSidebarVisible = !isSidebarVisible;
+    }else {
+      isSidebarVisible = true;
+      this.index = index;
     }
-    notifyListeners();
-  }
+    // if (index == 0) {
+    //   // isOutlineVisible = !isOutlineVisible;
 
-  void removeMarker(int pageNumber, Marker marker) {
-    if (_markers.containsKey(pageNumber)) {
-      _markers[pageNumber]!.remove(marker);
-      if (_markers[pageNumber]!.isEmpty) {
-        _markers.remove(pageNumber);
-      }
-      notifyListeners();
-    }
-  }
+    // } else if (index == 1) {
+    //   isAnnotationVisible = !isAnnotationVisible;
+    // } else if (index == 2) {
+    //   isBookmarkVisible = !isBookmarkVisible;
+    // } else if (index == 3) {
+    //   isThumbnailVisible = !isThumbnailVisible;
+    // } else if (index == 4) {
+    //   _isSearching = !_isSearching;
+    // }
 
-  void toggleOutline() {
-    isOutlineVisible = !isOutlineVisible;
-
-    if (!isOutlineVisible) {
-      _isSearching = false;
-    }
-
-    print('toggleOutline: $isOutlineVisible');
-    print('outline: $outline');
+    print('toggleOutline: $isSidebarVisible');
+    // print('outline: $outline');
     notifyListeners();
   }
 
@@ -195,68 +207,23 @@ class ReaderViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void paintMarkers(Canvas canvas, Rect pageRect, PdfPage page) {
-    final markers = _markers[page.pageNumber];
-    if (markers == null) return;
-
-    for (final marker in markers) {
-      final paint = Paint()
-        ..color = marker.color.withAlpha(100)
-        ..style = PaintingStyle.fill;
-
-      for (final range in marker.ranges.ranges) {
-        final f = PdfTextRangeWithFragments.fromTextRange(
-          marker.ranges.pageText,
-          range.start,
-          range.end,
-        );
-        if (f != null) {
-          canvas.drawRect(
-            f.bounds.toRectInPageRect(page: page, pageRect: pageRect),
-            paint,
-          );
-        }
-      }
-    }
-  }
 
   // 修改：处理文本选择并显示高亮按钮
   // void handleTextSelection(
   //     PdfTextRanges selectedRanges, Offset selectionOffset) {
   //   if (selectedRanges.ranges.isNotEmpty) {
-  //     _currentSelection = selectedRanges;
+  //     currentSelection = selectedRanges;
   //     _highlightButtonOffset = selectionOffset;
   //     _isHighlightButtonVisible = true;
   //     notifyListeners();
   //   } else {
   //     _isHighlightButtonVisible = false;
-  //     _currentSelection = null;
+  //     currentSelection = null;
   //     notifyListeners();
   //   }
   // }
 
-  // 新增：处理高亮按钮点击
-  void applyHighlight() {
-    if (kDebugMode) {
-      debugPrint('applyHighlight: $_currentSelection');
-      debugPrint('currentPage: $_currentSelection!.pageText.pageNumber');
-      debugPrint('currentPageText: ${_currentSelection!.pageText}');
-    }
-    if (_currentSelection != null) {
-      // 定义标记颜色
-      Color markerColor = CupertinoColors.systemYellow;
-      // 获取当前页面
-      int currentPage = _currentSelection!.pageText.pageNumber;
-      // 创建标记
-      Marker marker = Marker(markerColor, _currentSelection!);
-      // 添加标记
-      addMarker(currentPage, marker);
-      // 隐藏按钮
-      _isHighlightButtonVisible = false;
-      _currentSelection = null;
-      notifyListeners();
-    }
-  }
+
 
   Future<void> setSelectedFile(File file) async {
     selectedFile = file;
@@ -271,15 +238,23 @@ class ReaderViewModel extends ChangeNotifier {
     super.dispose();
   }
 
-  /// 更新文本选择并控制高亮按钮的显示
-  void updateTextSelections(PdfTextRanges selections) {
-    if (selections.ranges.isNotEmpty) {
-      _currentSelection = selections;
-      _isHighlightButtonVisible = true;
-    } else {
-      _currentSelection = null;
-      _isHighlightButtonVisible = false;
-    }
+  void goToPreviousPage() {
+    int currentPage = pdfViewerController.pageNumber!;
+    int previousPage = currentPage - 1;
+    pdfViewerController.goToPage(pageNumber: previousPage);
     notifyListeners();
   }
+
+  void goToNextPage() {
+    int? currentPage = pdfViewerController.pageNumber;
+    int nextPage = currentPage! + 1;
+    pdfViewerController.goToPage(pageNumber: nextPage);
+    notifyListeners();
+  }
+
+  /// 更新文本选择并控制高亮按钮的显示
+  // void updateTextSelections(List<PdfTextRanges> selections) {
+  //   currentSelection = selections;
+  // }
 }
+
