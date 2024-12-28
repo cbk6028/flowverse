@@ -41,6 +41,9 @@ class _MyHomePageState extends State<MyHomePage> {
   bool isBrushSelected = false;
   bool isUnderlineSelected = false;
 
+  // 添加一个 Map 来跟踪每个节点的展开状态
+  final Map<String, bool> _expandedNodes = {};
+
   // 新增：重置所有工具状态
   void resetToolStates() {
     setState(() {
@@ -105,10 +108,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
     // 大纲列表
     Widget buildOutlineList(List<PdfOutlineNode> nodes, {double indent = 0}) {
+      var appState = context.watch<ReaderViewModel>();
+      
       return Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: nodes.map((node) {
+          final nodeKey = '${node.title}_${indent}';
+          final isExpanded = appState.outlineExpandedStates[nodeKey] ?? false;
+
           return Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,14 +124,12 @@ class _MyHomePageState extends State<MyHomePage> {
               CupertinoButton(
                 padding: EdgeInsets.zero,
                 onPressed: () {
+                  if (node.children.isNotEmpty) {
+                    // 使用 ViewModel 中的方法来切换状态
+                    appState.toggleOutlineNode(nodeKey);
+                  }
                   if (node.dest != null) {
-                    if (kDebugMode) {
-                      debugPrint('goToDest Controller: $controller');
-                      debugPrint('Dest: ${node.dest?.pageNumber}');
-                    }
-
                     controller.goToDest(node.dest);
-                    // Navigator.pop(context);
                   }
                 },
                 child: Container(
@@ -134,16 +140,31 @@ class _MyHomePageState extends State<MyHomePage> {
                     bottom: 8,
                   ),
                   width: double.infinity,
-                  child: Text(
-                    node.title ?? '',
-                    style: const TextStyle(
-                      color: CupertinoColors.label,
-                      fontSize: 16,
-                    ),
+                  child: Row(
+                    children: [
+                      if (node.children.isNotEmpty)
+                        Icon(
+                          isExpanded 
+                              ? CupertinoIcons.chevron_down 
+                              : CupertinoIcons.chevron_right,
+                          size: 12,
+                          color: CupertinoColors.systemGrey,
+                        ),
+                      SizedBox(width: node.children.isNotEmpty ? 8 : 0),
+                      Expanded(
+                        child: Text(
+                          node.title ?? '',
+                          style: const TextStyle(
+                            color: CupertinoColors.label,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              if (node.children.isNotEmpty)
+              if (node.children.isNotEmpty && isExpanded)
                 Padding(
                   padding: const EdgeInsets.only(left: 0),
                   child: buildOutlineList(node.children, indent: indent + 20),

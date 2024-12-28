@@ -40,9 +40,8 @@ class ReaderViewModel extends ChangeNotifier {
   final MarkerVewModel markerVm = MarkerVewModel();
   final DictViewModel dictVm = DictViewModel();
 
-  
-
-  
+  // 添加一个 Map 来存储节点的展开状态
+  final Map<String, bool> outlineExpandedStates = {};
 
   late final textSearcher = PdfTextSearcher(pdfViewerController)
     ..addListener(_update);
@@ -108,7 +107,12 @@ class ReaderViewModel extends ChangeNotifier {
       try {
         final document = await PdfDocument.openFile(selectedFile!.path);
         outline = await document.loadOutline();
-        // outline = outline;
+        
+        // 初始化所有节点为折叠状态
+        if (outline != null) {
+          _initializeOutlineStates(outline!);
+        }
+        
         await document.dispose();
         notifyListeners();
       } catch (e) {
@@ -117,6 +121,27 @@ class ReaderViewModel extends ChangeNotifier {
         }
       }
     }
+  }
+
+  // 递归初始化所有节点的展开状态
+  void _initializeOutlineStates(List<PdfOutlineNode> nodes, {String prefix = ''}) {
+    for (var node in nodes) {
+      final nodeKey = '${node.title}_$prefix';
+      outlineExpandedStates[nodeKey] = false; // 默认折叠
+      
+      if (node.children.isNotEmpty) {
+        _initializeOutlineStates(
+          node.children, 
+          prefix: '${prefix}_${node.title}'
+        );
+      }
+    }
+  }
+
+  // 切换节点展开状态的方法
+  void toggleOutlineNode(String nodeKey) {
+    outlineExpandedStates[nodeKey] = !(outlineExpandedStates[nodeKey] ?? false);
+    notifyListeners();
   }
 
   Future<void> savePdf(BuildContext context) async {
@@ -258,6 +283,15 @@ class ReaderViewModel extends ChangeNotifier {
     }
 
     notifyListeners();
+  }
+
+  // 添加当前页面号的 getter
+  int? get currentPageNumber => pdfViewerController.pageNumber;
+
+  // 判断大纲节点是否为当前页面
+  bool isCurrentPage(PdfOutlineNode node) {
+    if (node.dest?.pageNumber == null || currentPageNumber == null) return false;
+    return node.dest!.pageNumber == currentPageNumber;
   }
 
 }

@@ -12,104 +12,129 @@ import '../view_models/reader_vm.dart';
 // 侧边栏
 // 有大纲，搜索等功能
 
-class SideBar extends StatefulWidget {
+class SideBar extends StatelessWidget {
   const SideBar({super.key});
 
   @override
-  State<SideBar> createState() => _SideBarState();
-}
-
-class _SideBarState extends State<SideBar> {
-  // int? index = 0; // 移到类级别
-
-  @override
   Widget build(BuildContext context) {
-    final viewModel = context.watch<ReaderViewModel>();
-    var _index = viewModel.index;
-    if (!viewModel.isSidebarVisible || viewModel.outline == null) {
-      return Container();
+    var appState = context.watch<ReaderViewModel>();
+
+    Widget buildOutlineList(List<PdfOutlineNode> nodes, {double indent = 0}) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: nodes.map((node) {
+          final nodeKey = '${node.title}_$indent';
+          final isExpanded = appState.outlineExpandedStates[nodeKey] ?? false;
+          final isCurrentPage = appState.isCurrentPage(node);
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: EdgeInsets.only(
+                  left: 16 + indent,
+                  right: 16,
+                  top: 8,
+                  bottom: 8,
+                ),
+                width: double.infinity,
+                child: Row(
+                  children: [
+                    if (node.children.isNotEmpty)
+                      GestureDetector(
+                        onTap: () {
+                          appState.toggleOutlineNode(nodeKey);
+                        },
+                        child: Icon(
+                          isExpanded 
+                              ? CupertinoIcons.chevron_down 
+                              : CupertinoIcons.chevron_right,
+                          size: 12,
+                          color: CupertinoColors.systemGrey,
+                        ),
+                      ),
+                    SizedBox(width: node.children.isNotEmpty ? 8 : 0),
+                    Expanded(
+                      child: CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        onPressed: node.dest != null 
+                            ? () => appState.pdfViewerController.goToDest(node.dest)
+                            : null,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            node.title ?? '',
+                            style: TextStyle(
+                              color: node.dest != null 
+                                  ? CupertinoColors.label 
+                                  : CupertinoColors.systemGrey,
+                              fontSize: 14,
+                              fontWeight: isCurrentPage 
+                                  ? FontWeight.bold 
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (node.children.isNotEmpty && isExpanded)
+                buildOutlineList(node.children, indent: indent + 20),
+            ],
+          );
+        }).toList(),
+      );
     }
+
     return Container(
       width: 250,
-      padding: const EdgeInsets.all(8.0),
-      color: Colors.grey[200],
+      decoration: BoxDecoration(
+        border: Border(
+          right: BorderSide(
+            color: CupertinoColors.systemGrey.withOpacity(0.2),
+            width: 1,
+          ),
+        ),
+      ),
       child: Column(
         children: [
-          switch (_index) {
-            0 => const Outline(),
-            1 => const Expanded(child: Center(child: Text('批注'))),
-            2 => const Expanded(child: Center(child: Text('书签'))),
-            3 => const Expanded(child: Center(child: Text('缩略图'))),
-            4 => Expanded(
-                  child: Column(
-                children: [
-                  const SearchBar(),
-                  // SearchSection(),
-                  if (viewModel.isSearching) const SearchSection()
-                ],
-              )),
-            _ => Container(),
-          },
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: CupertinoColors.systemGrey.withOpacity(0.2),
+                  width: 1,
+                ),
+              ),
+            ),
+            child: const Row(
+              children: [
+                Text(
+                  '目录',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (appState.outline != null)
+            Expanded(
+              child: SingleChildScrollView(
+                child: buildOutlineList(appState.outline!),
+              ),
+            ),
         ],
       ),
     );
   }
 }
-
-// class _SideBarState extends State<SideBar> {
-//   int? _index = 0; // 移到类级别
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final viewModel = context.watch<ReaderViewModel>();
-
-//     if (!viewModel.isOutlineVisible || viewModel.outline == null) {
-//       return Container();
-//     }
-//     return Container(
-//       width: 250,
-//       padding: const EdgeInsets.all(8.0),
-//       child: Column(
-//         children: [
-//           SearchBar(),
-//           if (viewModel.isSearching)
-//             // Container()
-//             SearchSection()
-//           else ...[
-//             // 使用 spread operator (...) 来展开多个 widget
-//             CupertinoSlidingSegmentedControl<int>(
-//               children: const {
-//                 0: Text('目录'),
-//                 1: Text('批注'),
-//                 2: Text('书签'),
-//                 3: Text('缩略图'),
-//               },
-//               groupValue: _index,
-//               onValueChanged: (value) {
-//                 if (kDebugMode) {
-//                   debugPrint('value: $value');
-//                 }
-//                 setState(() {
-//                   _index = value;
-//                 });
-//               },
-//             ),
-//             const SizedBox(
-//               height: 20,
-//             ),
-//             switch (_index) {
-//               0 => const Outline(),
-//               1 => const Expanded(child: Center(child: Text('批注'))),
-//               2 => const Expanded(child: Center(child: Text('书签'))),
-//               3 => const Expanded(child: Center(child: Text('缩略图'))),
-//               _ => Container(),
-//             }
-//           ],
-//         ],
-//       ),
-//     );
-//   }
-// }
 
 // 搜索
 class SearchBar extends StatelessWidget {
