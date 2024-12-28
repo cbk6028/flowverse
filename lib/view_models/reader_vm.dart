@@ -8,6 +8,8 @@ import 'dart:io';
 // import 'package:provider/provider.dart';
 // import 'package:synchronized/extension.dart';
 
+import 'dict_vm.dart';
+
 class Marker {
   final Color color;
   final PdfTextRanges ranges;
@@ -21,6 +23,7 @@ class ReaderViewModel extends ChangeNotifier {
   bool darkMode = false;
 
   int index = -1;
+  int rindex = -1;
 
   var currentPage = 0;
   // bool isOutlineVisible = false;
@@ -35,11 +38,16 @@ class ReaderViewModel extends ChangeNotifier {
   final ScrollController scrollController = ScrollController();
 
   final MarkerVewModel markerVm = MarkerVewModel();
+  final DictViewModel dictVm = DictViewModel();
+
+  
 
   
 
   late final textSearcher = PdfTextSearcher(pdfViewerController)
     ..addListener(_update);
+
+  var isLeftSidebarVisible = false;
 
   void _update() {
     notifyListeners();
@@ -186,6 +194,7 @@ class ReaderViewModel extends ChangeNotifier {
 
   void zoomUp() {
     pdfViewerController.zoomUp();
+    // print(pdfViewerController.currentZoom);
     notifyListeners();
   }
 
@@ -239,9 +248,17 @@ class ReaderViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 更新文本选择并控制高亮按钮的显示
-  // void updateTextSelections(List<PdfTextRanges> selections) {
-  //   currentSelection = selections;
-  // }
+  void toggleROutline(int index) {
+    print(index);
+    if (rindex == index) {
+      isLeftSidebarVisible = !isLeftSidebarVisible;
+    }else {
+      isLeftSidebarVisible = true;
+      rindex = index;
+    }
+
+    notifyListeners();
+  }
+
 }
 

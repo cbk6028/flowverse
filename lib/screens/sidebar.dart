@@ -4,6 +4,8 @@ import 'package:pdfrx/pdfrx.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:synchronized/extension.dart';
+import 'package:webf/webf.dart';
+import '../models/webf.dart';
 
 import '../view_models/reader_vm.dart';
 
@@ -27,29 +29,28 @@ class _SideBarState extends State<SideBar> {
     if (!viewModel.isSidebarVisible || viewModel.outline == null) {
       return Container();
     }
-    return Container (
+    return Container(
       width: 250,
       padding: const EdgeInsets.all(8.0),
-      child:
-          Column(
-            children: [
+      color: Colors.grey[200],
+      child: Column(
+        children: [
           switch (_index) {
-        0 => const Outline(),
-        1 => const Expanded(child: Center(child: Text('批注'))),
-        2 => const Expanded(child: Center(child: Text('书签'))),
-        3 => const Expanded(child: Center(child: Text('缩略图'))),
-        4 => Expanded(
-              child: Column(
-            children: [
-              const SearchBar(),
-              // SearchSection(),
-              if (viewModel.isSearching) const SearchSection()
-            ],
-          )),
-        _ => Container(),
-      },
-
-      ],
+            0 => const Outline(),
+            1 => const Expanded(child: Center(child: Text('批注'))),
+            2 => const Expanded(child: Center(child: Text('书签'))),
+            3 => const Expanded(child: Center(child: Text('缩略图'))),
+            4 => Expanded(
+                  child: Column(
+                children: [
+                  const SearchBar(),
+                  // SearchSection(),
+                  if (viewModel.isSearching) const SearchSection()
+                ],
+              )),
+            _ => Container(),
+          },
+        ],
       ),
     );
   }
@@ -628,6 +629,7 @@ class LeftSidebar extends StatelessWidget {
         children: [
           IconButton(
             icon: const Icon(Icons.search),
+            color: Colors.black,
             tooltip: '搜索',
             onPressed: () {
               // Handle navigation to 搜索
@@ -635,7 +637,8 @@ class LeftSidebar extends StatelessWidget {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.menu_book),
+            icon: const Icon(Icons.menu_outlined),
+            color: Colors.black,
             tooltip: '目录',
             onPressed: () {
               // Handle navigation to 目录
@@ -643,7 +646,8 @@ class LeftSidebar extends StatelessWidget {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.comment),
+            icon: const Icon(Icons.comment_outlined),
+            color: Colors.black,
             tooltip: '批注',
             onPressed: () {
               // Handle navigation to 批注
@@ -651,7 +655,8 @@ class LeftSidebar extends StatelessWidget {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.bookmark),
+            icon: const Icon(Icons.bookmark_outline),
+            color: Colors.black,
             tooltip: '书签',
             onPressed: () {
               // Handle navigation to 书签
@@ -659,7 +664,8 @@ class LeftSidebar extends StatelessWidget {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.photo_library),
+            icon: const Icon(Icons.photo_library_outlined),
+            color: Colors.black,
             tooltip: '缩略图',
             onPressed: () {
               // Handle navigation to 缩略图
@@ -677,6 +683,8 @@ class RightSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<ReaderViewModel>();
+
     return Container(
       width: 45, // Narrow sidebar
       color: Colors.grey[200],
@@ -684,11 +692,164 @@ class RightSidebar extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           IconButton(
-            icon: const Icon(Icons.translate),
+            icon: const Icon(Icons.translate_outlined),
+            color: Colors.black,
             tooltip: '翻译',
             onPressed: () {
               // Handle translation action
+              appState.toggleROutline(0);
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.outbond_outlined),
+            color: Colors.black,
+            tooltip: '导出',
+            onPressed: () {
+              // Handle translation action
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class RSideBar extends StatelessWidget {
+  const RSideBar({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final viewModel = context.watch<ReaderViewModel>();
+    var _index = viewModel.rindex;
+    // if (!viewModel.isSidebarVisible || viewModel.outline == null) {
+    //   return Container();
+    // }
+    return Container(
+      width: 250,
+      padding: const EdgeInsets.all(8.0),
+      color: Colors.grey[200],
+      child: Column(
+        children: [
+          switch (_index) {
+            0 => TranslationPanel(),
+            1 => const Expanded(child: Center(child: Text('批注'))),
+            // 2 => const Expanded(child: Center(child: Text('书签'))),
+            // 3 => const Expanded(child: Center(child: Text('缩略图'))),
+            // 4 => Expanded(
+            //       child: Column(
+            //     children: [
+            //       const SearchBar(),
+            //       // SearchSection(),
+            //       if (viewModel.isSearching) const SearchSection()
+            //     ],
+            //   )),
+            _ => Container(),
+          },
+        ],
+      ),
+    );
+  }
+}
+// class RSideBar extends StatWidget {
+//   const RSideBar({super.key});
+
+//   @override
+//   State<SideBar> createState() => _SideBarStat
+
+// 首先创建一个新的 TranslationPanel 组件
+class TranslationPanel extends StatefulWidget {
+  const TranslationPanel({super.key});
+
+  @override
+  State<TranslationPanel> createState() => _TranslationPanelState();
+}
+
+class _TranslationPanelState extends State<TranslationPanel> {
+  final TextEditingController _controller = TextEditingController();
+  String translatedText = '';
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = context.watch<ReaderViewModel>();
+    return Expanded(
+      child: Column(
+        children: [
+          // 输入框部分
+          Container(
+            padding: const EdgeInsets.all(8.0),
+            child: CupertinoTextField(
+              controller: _controller,
+              placeholder: '输入要翻译的文本',
+              maxLines: 5,
+              minLines: 3,
+              decoration: BoxDecoration(
+                color: CupertinoColors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: CupertinoColors.systemGrey4,
+                ),
+              ),
+              onSubmitted: (value) {
+                // 这里处理翻译逻辑
+                // setState(() {
+                //   translatedText = "这里是翻译结果"; // 临时示例
+                // });
+              },
+            ),
+          ),
+          // 翻译按钮
+          CupertinoButton(
+            child: const Text('翻译'),
+            onPressed: () {
+              // 这里处理翻译逻辑
+              // setState(() {
+              //   translatedText = "这里是翻译结果"; // 临时示例
+              // });
+              appState.dictVm.query(_controller.text);
+            },
+          ),
+          // 翻译结果部分
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.all(12.0),
+              decoration: BoxDecoration(
+                color: CupertinoColors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: CupertinoColors.systemGrey4,
+                ),
+              ),
+              child: SingleChildScrollView(
+                  child: WebviewDesktop(
+                url: '<html><body></body></html>',
+              )
+                  //  appState.dictVm.queryResult.isEmpty
+                  //     ? const Text(
+                  //         '翻译结果将显示在这里',
+                  //         style: TextStyle(
+                  //           color: CupertinoColors.systemGrey,
+                  //         ),
+                  //       )
+                  //     : WebviewDesktop(
+                  //         url: appState.dictVm.queryResult,
+                  //       )
+                  //  Text(
+                  //   appState.dictVm.queryResult.isEmpty ? '翻译结果将显示在这里' : appState.dictVm.queryResult,
+                  //   style: TextStyle(
+                  //     color: appState.dictVm.queryResult.isEmpty
+                  //         ? CupertinoColors.systemGrey
+                  //         : CupertinoColors.black,
+                  //   ),
+                  // ),
+                  ),
+            ),
           ),
         ],
       ),

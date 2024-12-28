@@ -2,12 +2,12 @@ import 'dart:ui' as ui;
 import 'package:flowverse/models/bookshelf.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pdfrx/pdfrx.dart';
 
 import 'reader_screen.dart'; // 导入阅读器页面
 import '../view_models/dashboard_vm.dart';
-
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -20,7 +20,6 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 }
-
 
 class DashboardScreenInner extends StatefulWidget {
   const DashboardScreenInner({super.key});
@@ -89,7 +88,7 @@ class DashboardScreenInnerState extends State<DashboardScreenInner> {
                   ),
                   CupertinoListTile(
                     leading: Icon(CupertinoIcons.book),
-                    title: Text('书架'),
+                    title: Text('PDF 工具集'),
                     onTap: () {
                       // 处理书架点击事件
                     },
@@ -114,7 +113,7 @@ class DashboardScreenInnerState extends State<DashboardScreenInner> {
                   padding: const EdgeInsets.all(16.0),
                   child: BookshelfWidget(),
                 ),
-                // 浮动的“添加”按钮
+                // 浮动的"添加"按钮
                 Positioned(
                   right: 20,
                   bottom: 20,
@@ -136,8 +135,8 @@ class DashboardScreenInnerState extends State<DashboardScreenInner> {
                       );
                       if (result != null && result.files.single.path != null) {
                         String filePath = result.files.single.path!;
-                        String fileName = result.files.single.name;
-
+                        String fileName =
+                            result.files.single.name.split('.').first;
                         print(filePath);
                         // 检查文件是否已经存在
                         if (dashboardState.isBookExists(filePath)) {
@@ -323,8 +322,10 @@ class BookshelfWidget extends StatelessWidget {
             ),
           )
         : GridView.builder(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 5,
+            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+              // liverGridDelegateWithFixedCrossAxisCount(
+              // crossAxisCount: 5,
+              maxCrossAxisExtent: 200,
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
               childAspectRatio: 0.7,
@@ -333,7 +334,7 @@ class BookshelfWidget extends StatelessWidget {
             itemBuilder: (context, index) {
               String filePath = books[index].path;
               String fileName = books[index].name;
-
+              final GlobalKey _menuKey = GlobalKey();
               return GestureDetector(
                 onTap: () {
                   Navigator.push(
@@ -378,23 +379,99 @@ class BookshelfWidget extends StatelessWidget {
                         ],
                       ),
                     ),
+                    // Positioned(
+                    //   top: 4,
+                    //   right: 4,
+                    //   child: GestureDetector(
+                    //     onTap: () async {
+                    //       await dashboardState.removeBook(books[index]);
+                    //     },
+                    //     child: Container(
+                    //       decoration: BoxDecoration(
+                    //         color: CupertinoColors.white,
+                    //         shape: BoxShape.circle,
+                    //       ),
+                    //       child: Icon(
+                    //         CupertinoIcons.xmark_circle_fill,
+                    //         color: CupertinoColors.destructiveRed,
+                    //         size: 24,
+                    //       ),
+                    //     ),
+                    //   ),
+                    // ),
                     Positioned(
-                      top: 4,
+                      bottom: 4,
                       right: 4,
                       child: GestureDetector(
+                        key: _menuKey,
                         onTap: () async {
-                          await dashboardState.removeBook(books[index]);
+                          final RenderBox button = _menuKey.currentContext
+                              ?.findRenderObject() as RenderBox;
+                          final RenderBox overlay = Overlay.of(context)
+                              .context
+                              .findRenderObject() as RenderBox;
+                          final Offset position = button
+                              .localToGlobal(Offset.zero, ancestor: overlay);
+
+                          await showMenu(
+                            context: context,
+                            position: RelativeRect.fromLTRB(
+                              position.dx,
+                              position.dy,
+                              overlay.size.width - position.dx,
+                              overlay.size.height - position.dy,
+                            ),
+                            items: <PopupMenuEntry>[
+                              PopupMenuItem(
+                                child: Text('添加到喜爱'),
+                                onTap: () {
+                                  // 处理添加到喜爱
+                                },
+                              ),
+                              PopupMenuItem(
+                                child: Text('添加到书架'),
+                                onTap: () {
+                                  // 处理添加到书架
+                                },
+                              ),
+                              PopupMenuItem(
+                                child: Text('多选'),
+                                onTap: () {
+                                  // 处理多选
+                                },
+                              ),
+                              PopupMenuItem(
+                                child: Text('删除'),
+                                onTap: () async {
+                                  // 处理删除
+                                  await dashboardState.removeBook(books[index]);
+                                },
+                              ),
+                              PopupMenuItem(
+                                child: Text('编辑'),
+                                onTap: () {
+                                  // 处理编辑
+                                },
+                              ),
+                              PopupMenuItem(
+                                child: Text('详细信息'),
+                                onTap: () {
+                                  // 处理详细信息
+                                },
+                              ),
+                              PopupMenuItem(
+                                child: Text('更多操作'),
+                                onTap: () {
+                                  // 处理更多操作
+                                },
+                              ),
+                            ],
+                          );
                         },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: CupertinoColors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            CupertinoIcons.xmark_circle_fill,
-                            color: CupertinoColors.destructiveRed,
-                            size: 24,
-                          ),
+                        child: Icon(
+                          CupertinoIcons.ellipsis,
+                          color: CupertinoColors.black,
+                          size: 24,
                         ),
                       ),
                     ),

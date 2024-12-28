@@ -34,6 +34,26 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  final GlobalKey brushButtonKey = GlobalKey();
+  final GlobalKey underlineButtonKey = GlobalKey();
+
+  bool isHandSelected = true;
+  bool isBrushSelected = false;
+  bool isUnderlineSelected = false;
+
+  // 新增：重置所有工具状态
+  void resetToolStates() {
+    setState(() {
+      isHandSelected = false;
+      isBrushSelected = false;
+      isUnderlineSelected = false;
+    });
+    // 同时重置 ViewModel 中的状态
+    var appState = Provider.of<ReaderViewModel>(context, listen: false);
+    appState.markerVm.isHighlightMode = false;
+    appState.markerVm.isUnderlineMode = false;
+  }
+
   // 加载传递的文件路径
   @override
   void initState() {
@@ -206,25 +226,334 @@ class _MyHomePageState extends State<MyHomePage> {
       );
     }
 
-    ObstructingPreferredSizeWidget? buildToolBar() {
-      return CupertinoNavigationBar(
-        // backgroundColor: Colors.transparent,
-        // border: const Border(bodttom: BorderSide(color: Colors.black12)),
-        leading: CupertinoButton(
-          padding: const EdgeInsets.all(8.0),
-          // color: CupertinoColors,
-          borderRadius: BorderRadius.circular(8),
-          child: const Icon(
-            CupertinoIcons.back,
-            color: CupertinoColors.systemBlue,
-          ),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
+    Widget buildToolBar() {
+      var appState = context.watch<ReaderViewModel>();
+      return Container(
+        color: const Color(0xfff7f7f7),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
+            CupertinoButton(
+              padding: const EdgeInsets.all(8.0),
+              borderRadius: BorderRadius.circular(8),
+              child: const Icon(
+                CupertinoIcons.back,
+                color: CupertinoColors.systemBlue,
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CupertinoButton(
+                  padding: const EdgeInsets.all(8.0),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Icon(
+                    Icons.back_hand_outlined,
+                    color: isHandSelected ? CupertinoColors.systemBlue : CupertinoColors.black,
+                  ),
+                  onPressed: () {
+                    resetToolStates();
+                    setState(() {
+                      isHandSelected = true;
+                    });
+                  },
+                ),
+                CupertinoButton(
+                  key: brushButtonKey,
+                  padding: const EdgeInsets.all(8.0),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Icon(
+                    Icons.brush_outlined,
+                    color: isBrushSelected 
+                        ? appState.markerVm.highlight_color 
+                        : CupertinoColors.black,
+                  ),
+                  onPressed: () async {
+                    if (!isBrushSelected) {
+                      resetToolStates();
+                      setState(() {
+                        isBrushSelected = true;
+                      });
+                      appState.markerVm.isHighlightMode = true;
+                    } else {
+                      // 显示颜色选择菜单
+                      final RenderBox? button = brushButtonKey.currentContext?.findRenderObject() as RenderBox?;
+                      final RenderBox? overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
+
+                      if (button != null && overlay != null) {
+                        final buttonSize = button.size;
+                        final buttonPosition = button.localToGlobal(Offset.zero);
+
+                        await showMenu(
+                          context: context,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          color: Colors.white,
+                          position: RelativeRect.fromLTRB(
+                            buttonPosition.dx,
+                            buttonPosition.dy + buttonSize.height,
+                            buttonPosition.dx + 200,
+                            buttonPosition.dy + buttonSize.height + 200
+                          ),
+                          items: [
+                            PopupMenuItem(
+                              padding: EdgeInsets.zero,
+                              child: Container(
+                                width: 200,
+                                padding: EdgeInsets.all(8),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // 笔画样式选择
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceEvenly,
+                                      children: [
+                                        Container(
+                                          width: 80,
+                                          height: 30,
+                                          decoration: BoxDecoration(
+                                            border:
+                                                Border.all(color: Colors.blue),
+                                            borderRadius:
+                                                BorderRadius.circular(15),
+                                          ),
+                                          child: Center(
+                                            child: Container(
+                                              height: 2,
+                                              width: 60,
+                                              color: Colors.blue,
+                                            ),
+                                          ),
+                                        ),
+                                        Container(
+                                          width: 80,
+                                          height: 30,
+                                          decoration: BoxDecoration(
+                                            border:
+                                                Border.all(color: Colors.blue),
+                                            borderRadius:
+                                                BorderRadius.circular(15),
+                                          ),
+                                          child: Center(
+                                            child: Container(
+                                              height: 4,
+                                              width: 60,
+                                              color: Colors.blue,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 12),
+                                    // 颜色选择
+                                    Wrap(
+                                      alignment: WrapAlignment.center,
+                                      spacing: 12,
+                                      runSpacing: 12,
+                                      children: [
+                                        Colors.yellow,
+                                        Colors.orange,
+                                        Colors.red,
+                                        Colors.pink,
+                                        Colors.green,
+                                        Colors.blue,
+                                        Colors.purple,
+                                        Colors.brown,
+                                        Colors.grey,
+                                        Colors.black,
+                                      ].map((color) => GestureDetector(
+                                        onTap: () {
+                                          appState.markerVm.highlight_color = color as MaterialColor;
+                                          setState(() {});
+                                          Navigator.pop(context);
+                                        },
+                                        child: Container(
+                                          width: 30,
+                                          height: 30,
+                                          decoration: BoxDecoration(
+                                            color: color,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: Colors.white, width: 2),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(0.1),
+                                                blurRadius: 4,
+                                                offset: Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      )).toList(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+                    }
+                  },
+                ),
+                CupertinoButton(
+                  key: underlineButtonKey,
+                  padding: const EdgeInsets.all(8.0),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Icon(
+                    Icons.format_underline_outlined,
+                    color: isUnderlineSelected 
+                        ? appState.markerVm.underline_color 
+                        : CupertinoColors.black,
+                  ),
+                  onPressed: () async {
+                    if (!isUnderlineSelected) {
+                      resetToolStates();
+                      setState(() {
+                        isUnderlineSelected = true;
+                      });
+                      appState.markerVm.isUnderlineMode = true;
+                    } else {
+                      final RenderBox? button = underlineButtonKey
+                          .currentContext
+                          ?.findRenderObject() as RenderBox?;
+                      final RenderBox? overlay = Overlay.of(context)
+                          .context
+                          .findRenderObject() as RenderBox?;
+
+                      if (button != null && overlay != null) {
+                        final buttonSize = button.size;
+                        final buttonPosition =
+                            button.localToGlobal(Offset.zero);
+
+                        await showMenu(
+                          context: context,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          color: Colors.white,
+                          position: RelativeRect.fromLTRB(
+                              buttonPosition.dx,
+                              buttonPosition.dy + buttonSize.height,
+                              buttonPosition.dx + 200,
+                              buttonPosition.dy + buttonSize.height + 200),
+                          items: [
+                            PopupMenuItem(
+                              padding: EdgeInsets.zero,
+                              child: Container(
+                                width: 200,
+                                padding: EdgeInsets.all(8),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // 下划线样式选择
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceEvenly,
+                                      children: [
+                                        Container(
+                                          width: 80,
+                                          height: 30,
+                                          decoration: BoxDecoration(
+                                            border: Border.all(
+                                                color: Colors.blue),
+                                            borderRadius:
+                                                BorderRadius.circular(15),
+                                          ),
+                                          child: Center(
+                                            child: Container(
+                                              height: 1,
+                                              width: 60,
+                                              color: Colors.blue,
+                                            ),
+                                          ),
+                                        ),
+                                        Container(
+                                          width: 80,
+                                          height: 30,
+                                          decoration: BoxDecoration(
+                                            border: Border.all(
+                                                color: Colors.blue),
+                                            borderRadius:
+                                                BorderRadius.circular(15),
+                                          ),
+                                          child: Center(
+                                            child: Container(
+                                              height: 2,
+                                              width: 60,
+                                              color: Colors.blue,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 12),
+                                    // 颜色选择
+                                    Wrap(
+                                      alignment: WrapAlignment.center,
+                                      spacing: 12,
+                                      runSpacing: 12,
+                                      children: [
+                                        Colors.yellow,
+                                        Colors.orange,
+                                        Colors.red,
+                                        Colors.pink,
+                                        Colors.green,
+                                        Colors.blue,
+                                        Colors.purple,
+                                        Colors.brown,
+                                        Colors.grey,
+                                        Colors.black,
+                                      ]
+                                          .map((color) => GestureDetector(
+                                                onTap: () {
+                                                  appState.markerVm
+                                                          .underline_color =
+                                                      color as MaterialColor;
+                                                  appState.markerVm
+                                                      .applyUnderline();
+                                                  setState(() {});
+                                                  Navigator.pop(context);
+                                                },
+                                                child: Container(
+                                                  width: 30,
+                                                  height: 30,
+                                                  decoration: BoxDecoration(
+                                                    color: color,
+                                                    shape: BoxShape.circle,
+                                                    border: Border.all(
+                                                        color: Colors.white,
+                                                        width: 2),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: Colors.black
+                                                            .withOpacity(0.1),
+                                                        blurRadius: 4,
+                                                        offset: Offset(0, 2),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ))
+                                          .toList(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+                    }
+                  },
+                ),
+              ],
+            ),
             CupertinoButton(
               padding: EdgeInsets.zero,
               onPressed: () => appState.toggleDarkMode(),
@@ -232,61 +561,12 @@ class _MyHomePageState extends State<MyHomePage> {
                   ? CupertinoIcons.moon
                   : CupertinoIcons.sun_max),
             ),
-            CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: () => appState.savePdf(context),
-              child: const Icon(CupertinoIcons.arrow_down_doc),
-            ),
-            // CupertinoButton(
-            //   padding: EdgeInsets.zero,
-            //   onPressed: () => appState.printPdf(context),
-            //   child: const Icon(CupertinoIcons.printer),
-            // ),
-          ],
-        ),
-        // 新增：高亮按钮放在中间
-        middle: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CupertinoButton(
-              padding: const EdgeInsets.all(8.0),
-              // color: CupertinoColors,
-              borderRadius: BorderRadius.circular(8),
-              child: const Icon(
-                CupertinoIcons.paintbrush,
-                color: CupertinoColors.systemYellow,
-              ),
-              onPressed: () {
-                // if (kDebugMode) {
-                //   debugPrint('selections: ${appState.markerVm.selectedRanges?.isEmpty}');
-                // }
-                if (appState.markerVm.selectedRanges!.isNotEmpty) {
-                  appState.markerVm.applyHighlight();
-                }
-              },
-            ),
-            CupertinoButton(
-              padding: const EdgeInsets.all(8.0),
-              // color: CupertinoColors,
-              borderRadius: BorderRadius.circular(8),
-              child: const Icon(
-                CupertinoIcons.underline,
-                color: CupertinoColors.systemBlue,
-              ),
-              onPressed: () {
-                // if (appState.isHighlightButtonVisible) {
-                //   appState.applyHighlight();
-                // }
-                if (appState.markerVm.selectedRanges!.isNotEmpty) {
-                  appState.markerVm.applyUnderline();
-                }
-              },
-            ),
           ],
         ),
       );
     }
 
+    // appState.pdfViewerController.setZoom(appState.pdfViewerController.centerPosition, zoom);
     Widget buildViewer() {
       return ColorFiltered(
         colorFilter: ColorFilter.mode(Colors.white,
@@ -295,7 +575,19 @@ class _MyHomePageState extends State<MyHomePage> {
           appState.selectedFile!.path,
           controller: controller,
           params: PdfViewerParams(
-            backgroundColor: const Color(0xfffafafa),
+            onViewerReady: (pdfDocument, pdfViewerController) {
+              const margin = 50.0;
+              final zoom = (pdfViewerController.viewSize.width - margin * 2) /
+                  pdfDocument.pages[0].width;
+              // (viewSize.width - margin * 2) / page.width
+
+              pdfViewerController.setZoom(
+                  pdfViewerController.centerPosition, zoom);
+            },
+            // gnome
+            // backgroundColor: const Color(0xfffafafa),
+            backgroundColor: const Color(0xfff7f7f7),
+            // backgroundColor: const Color.fromARGB(255, 3, 3, 3),
             pageDropShadow: const BoxShadow(
               color: Colors.black12,
               blurRadius: 10,
@@ -331,16 +623,17 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     return CupertinoPageScaffold(
-      navigationBar: buildToolBar(),
+      // navigationBar: buildToolBar(),
       child: SafeArea(
         child: Stack(
           children: [
             Column(
               children: [
-                Divider(
-                  color: Colors.black,
-                  thickness: 0.1,
-                ),
+                buildToolBar(),
+                // Divider(
+                //   color: Colors.black,
+                //   thickness: 0.1,
+                // ),
                 Expanded(
                   child: Row(
                     children: [
@@ -351,10 +644,10 @@ class _MyHomePageState extends State<MyHomePage> {
                         child: Stack(
                           children: [
                             buildViewer(),
-                            // buildZoomButtons(),
                           ],
                         ),
                       ),
+                      if (appState.isLeftSidebarVisible) const RSideBar(),
                       RightSidebar(),
                     ],
                   ),
