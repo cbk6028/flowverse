@@ -297,10 +297,16 @@ class _PdfThumbnailState extends State<PdfThumbnail> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
-        child: RawImage(
-          image: _thumbnail,
-          fit: BoxFit.contain,
-        ),
+        child: _thumbnail != null
+            ? RawImage(
+                image: _thumbnail,
+                fit: BoxFit.cover,
+                width: double.infinity,
+              )
+            : Center(
+                child: Icon(CupertinoIcons.doc_text_fill,
+                    size: 48, color: CupertinoColors.systemGrey),
+              ),
       ),
     );
   }
@@ -348,12 +354,12 @@ class BookshelfWidget extends StatelessWidget {
                   children: [
                     Container(
                       decoration: BoxDecoration(
-                        color: CupertinoColors.systemGrey6,
-                        borderRadius: BorderRadius.circular(8),
+                        color: CupertinoColors.white,
+                        borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: CupertinoColors.systemGrey.withOpacity(0.2),
-                            blurRadius: 4,
+                            color: CupertinoColors.systemGrey.withOpacity(0.15),
+                            blurRadius: 8,
                             offset: Offset(0, 2),
                           ),
                         ],
@@ -361,15 +367,32 @@ class BookshelfWidget extends StatelessWidget {
                       child: Column(
                         children: [
                           Expanded(
-                            child: PdfThumbnail(filePath: filePath),
+                            child: Container(
+                              margin: EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: CupertinoColors.systemGrey.withOpacity(0.1),
+                                    blurRadius: 4,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: PdfThumbnail(filePath: filePath),
+                              ),
+                            ),
                           ),
                           Padding(
-                            padding: const EdgeInsets.all(8.0),
+                            padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
                             child: Text(
                               fileName,
                               style: TextStyle(
                                 color: CupertinoColors.black,
-                                fontSize: 12,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
                               ),
                               textAlign: TextAlign.center,
                               overflow: TextOverflow.ellipsis,
@@ -379,47 +402,44 @@ class BookshelfWidget extends StatelessWidget {
                         ],
                       ),
                     ),
-                    // Positioned(
-                    //   top: 4,
-                    //   right: 4,
-                    //   child: GestureDetector(
-                    //     onTap: () async {
-                    //       await dashboardState.removeBook(books[index]);
-                    //     },
-                    //     child: Container(
-                    //       decoration: BoxDecoration(
-                    //         color: CupertinoColors.white,
-                    //         shape: BoxShape.circle,
-                    //       ),
-                    //       child: Icon(
-                    //         CupertinoIcons.xmark_circle_fill,
-                    //         color: CupertinoColors.destructiveRed,
-                    //         size: 24,
-                    //       ),
-                    //     ),
-                    //   ),
-                    // ),
                     Positioned(
                       bottom: 4,
                       right: 4,
                       child: GestureDetector(
                         key: _menuKey,
                         onTap: () async {
-                          final RenderBox button = _menuKey.currentContext
-                              ?.findRenderObject() as RenderBox;
-                          final RenderBox overlay = Overlay.of(context)
+                          final RenderBox button = _menuKey.currentContext!
+                              .findRenderObject() as RenderBox;
+                          final RenderBox overlay = Navigator.of(context)
+                              .overlay!
                               .context
                               .findRenderObject() as RenderBox;
-                          final Offset position = button
-                              .localToGlobal(Offset.zero, ancestor: overlay);
+                          
+                          // 获取按钮相对于 Overlay 的位置
+                          final buttonPosition = button.localToGlobal(
+                            Offset.zero,
+                            ancestor: overlay
+                          );
+                          
+                          // 获取按钮的大小
+                          final buttonSize = button.size;
+                          
+                          // 计算菜单位置
+                          final menuPosition = RelativeRect.fromRect(
+                            Rect.fromPoints(
+                              buttonPosition,
+                              buttonPosition.translate(buttonSize.width, buttonSize.height),
+                            ),
+                            Offset.zero & overlay.size,
+                          );
 
                           await showMenu(
                             context: context,
                             position: RelativeRect.fromLTRB(
-                              position.dx,
-                              position.dy,
-                              overlay.size.width - position.dx,
-                              overlay.size.height - position.dy,
+                              buttonPosition.dx - 120, // 向左偏移以对齐菜单
+                              menuPosition.top,
+                              buttonPosition.dx,
+                              menuPosition.top + buttonSize.height,
                             ),
                             items: <PopupMenuEntry>[
                               PopupMenuItem(
@@ -468,10 +488,24 @@ class BookshelfWidget extends StatelessWidget {
                             ],
                           );
                         },
-                        child: Icon(
-                          CupertinoIcons.ellipsis,
-                          color: CupertinoColors.black,
-                          size: 24,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: CupertinoColors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: CupertinoColors.systemGrey.withOpacity(0.2),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            CupertinoIcons.ellipsis,
+                            color: CupertinoColors.black,
+                            size: 20,
+                          ),
                         ),
                       ),
                     ),
