@@ -1,5 +1,7 @@
 import 'package:file_picker/file_picker.dart';
+import 'package:flowverse/screens/topbar.dart';
 import 'package:flowverse/view_models/marker_vm.dart';
+import 'package:flowverse/view_models/topbar_vm.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pdfrx/pdfrx.dart';
@@ -18,6 +20,16 @@ class Marker {
 }
 
 class ReaderViewModel extends ChangeNotifier {
+  late final MarkerVewModel markerVm;
+  final DictViewModel dictVm = DictViewModel();
+  late final TopbarViewModel topbarVm;
+  String currentPdfPath = '';  // 添加当前PDF路径
+
+  ReaderViewModel() {
+    topbarVm = TopbarViewModel(this); // 传入 this
+    markerVm = MarkerVewModel(this);
+  }
+
   final PdfViewerController pdfViewerController = PdfViewerController();
 
   bool darkMode = false;
@@ -37,9 +49,6 @@ class ReaderViewModel extends ChangeNotifier {
 
   final ScrollController scrollController = ScrollController();
 
-  final MarkerVewModel markerVm = MarkerVewModel();
-  final DictViewModel dictVm = DictViewModel();
-
   // 添加一个 Map 来存储节点的展开状态
   final Map<String, bool> outlineExpandedStates = {};
 
@@ -52,11 +61,19 @@ class ReaderViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-
   void toggleDarkMode() {
     darkMode = !darkMode;
     notifyListeners();
   }
+
+  void updateUnderlineState(bool value) {
+    topbarVm.isUnderlineSelectedState = value;
+    notifyListeners();
+  }
+
+  // void notifyListenersForChildren() {
+  //   super.notifyListeners();
+  // }
 
   // void addMarker(int pageNumber, Marker marker) {
   //   if (_markers.containsKey(pageNumber)) {
@@ -80,7 +97,7 @@ class ReaderViewModel extends ChangeNotifier {
   void toggleOutline(int index) {
     if (this.index == index) {
       isSidebarVisible = !isSidebarVisible;
-    }else {
+    } else {
       isSidebarVisible = true;
       this.index = index;
     }
@@ -107,12 +124,12 @@ class ReaderViewModel extends ChangeNotifier {
       try {
         final document = await PdfDocument.openFile(selectedFile!.path);
         outline = await document.loadOutline();
-        
+
         // 初始化所有节点为折叠状态
         if (outline != null) {
           _initializeOutlineStates(outline!);
         }
-        
+
         await document.dispose();
         notifyListeners();
       } catch (e) {
@@ -124,16 +141,15 @@ class ReaderViewModel extends ChangeNotifier {
   }
 
   // 递归初始化所有节点的展开状态
-  void _initializeOutlineStates(List<PdfOutlineNode> nodes, {String prefix = ''}) {
+  void _initializeOutlineStates(List<PdfOutlineNode> nodes,
+      {String prefix = ''}) {
     for (var node in nodes) {
       final nodeKey = '${node.title}_$prefix';
       outlineExpandedStates[nodeKey] = false; // 默认折叠
-      
+
       if (node.children.isNotEmpty) {
-        _initializeOutlineStates(
-          node.children, 
-          prefix: '${prefix}_${node.title}'
-        );
+        _initializeOutlineStates(node.children,
+            prefix: '${prefix}_${node.title}');
       }
     }
   }
@@ -228,7 +244,6 @@ class ReaderViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-
   // 修改：处理文本选择并显示高亮按钮
   // void handleTextSelection(
   //     PdfTextRanges selectedRanges, Offset selectionOffset) {
@@ -244,10 +259,9 @@ class ReaderViewModel extends ChangeNotifier {
   //   }
   // }
 
-
-
   Future<void> setSelectedFile(File file) async {
     selectedFile = file;
+    currentPdfPath = file.path;  // 更新当前PDF路径
     notifyListeners();
     await _loadOutline();
   }
@@ -277,7 +291,7 @@ class ReaderViewModel extends ChangeNotifier {
     print(index);
     if (rindex == index) {
       isLeftSidebarVisible = !isLeftSidebarVisible;
-    }else {
+    } else {
       isLeftSidebarVisible = true;
       rindex = index;
     }
@@ -290,9 +304,8 @@ class ReaderViewModel extends ChangeNotifier {
 
   // 判断大纲节点是否为当前页面
   bool isCurrentPage(PdfOutlineNode node) {
-    if (node.dest?.pageNumber == null || currentPageNumber == null) return false;
+    if (node.dest?.pageNumber == null || currentPageNumber == null)
+      return false;
     return node.dest!.pageNumber == currentPageNumber;
   }
-
 }
-

@@ -19,9 +19,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoApp(
-      theme: const CupertinoThemeData(),
-      localizationsDelegates: const [
+    return const CupertinoApp(
+      theme: CupertinoThemeData(),
+      localizationsDelegates: [
         // SelectionArea 需要
         GlobalMaterialLocalizations.delegate,
       ],
