@@ -1,3 +1,4 @@
+import 'package:flowverse/view_models/marker_vm.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
@@ -87,14 +88,15 @@ class _TopBarState extends State<TopBar> {
                   child: Icon(
                     Icons.brush_outlined,
                     color: appState.topbarVm.isBrushSelected 
-                        ? appState.markerVm.highlight_color 
+                        ? appState.markerVm.highlightColor 
                         : CupertinoColors.black,
                   ),
                   onPressed: () async {
                     if (!appState.topbarVm.isBrushSelected) {
                       appState.topbarVm.resetToolStates();
                       appState.topbarVm.isBrushSelected = true;
-                      appState.markerVm.isHighlightMode = true;
+                      // appState.markerVm.isHighlightMode = true;
+                      appState.markerVm.currentMarkerType = MarkerType.highlight;
                     } else {
                       // 显示颜色选择菜单
                       final RenderBox? button = appState.topbarVm.brushButtonKey.currentContext?.findRenderObject() as RenderBox?;
@@ -185,7 +187,7 @@ class _TopBarState extends State<TopBar> {
                                         Colors.black,
                                       ].map((color) => GestureDetector(
                                         onTap: () {
-                                          appState.markerVm.highlight_color = color as MaterialColor;
+                                          appState.markerVm.highlightColor = color as MaterialColor;
                                           setState(() {});
                                           Navigator.pop(context);
                                         },
@@ -224,7 +226,7 @@ class _TopBarState extends State<TopBar> {
                   child: Icon(
                     Icons.format_underline_outlined,
                     color: appState.topbarVm.isUnderlineSelected 
-                        ? appState.markerVm.underline_color 
+                        ? appState.markerVm.underlineColor 
                         : CupertinoColors.black,
                   ),
                   onPressed: () async {
@@ -232,7 +234,7 @@ class _TopBarState extends State<TopBar> {
                       appState.topbarVm.resetToolStates();
                       // appState.updateUnderlineState(true);
                       appState.topbarVm.isUnderlineSelected = true;
-                      appState.markerVm.isUnderlineMode = true;
+                      appState.markerVm.currentMarkerType = MarkerType.underline;
                     } else {
                       final RenderBox? button = appState.topbarVm.underlineButtonKey.currentContext?.findRenderObject() as RenderBox?;
                       final RenderBox? overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
@@ -324,7 +326,7 @@ class _TopBarState extends State<TopBar> {
                                           .map((color) => GestureDetector(
                                                 onTap: () {
                                                   appState.markerVm
-                                                          .underline_color =
+                                                          .underlineColor =
                                                       color as MaterialColor;
                                                   setState(() {});
                                                   Navigator.pop(context);

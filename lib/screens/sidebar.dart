@@ -18,6 +18,7 @@ class SideBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<ReaderViewModel>();
+    var _index = appState.index;
 
     Widget buildOutlineList(List<PdfOutlineNode> nodes, {double indent = 0}) {
       return Column(
@@ -48,8 +49,8 @@ class SideBar extends StatelessWidget {
                           appState.toggleOutlineNode(nodeKey);
                         },
                         child: Icon(
-                          isExpanded 
-                              ? CupertinoIcons.chevron_down 
+                          isExpanded
+                              ? CupertinoIcons.chevron_down
                               : CupertinoIcons.chevron_right,
                           size: 12,
                           color: CupertinoColors.systemGrey,
@@ -59,20 +60,21 @@ class SideBar extends StatelessWidget {
                     Expanded(
                       child: CupertinoButton(
                         padding: EdgeInsets.zero,
-                        onPressed: node.dest != null 
-                            ? () => appState.pdfViewerController.goToDest(node.dest)
+                        onPressed: node.dest != null
+                            ? () =>
+                                appState.pdfViewerController.goToDest(node.dest)
                             : null,
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
                             node.title ?? '',
                             style: TextStyle(
-                              color: node.dest != null 
-                                  ? CupertinoColors.label 
+                              color: node.dest != null
+                                  ? CupertinoColors.label
                                   : CupertinoColors.systemGrey,
                               fontSize: 14,
-                              fontWeight: isCurrentPage 
-                                  ? FontWeight.bold 
+                              fontWeight: isCurrentPage
+                                  ? FontWeight.bold
                                   : FontWeight.normal,
                             ),
                           ),
@@ -95,41 +97,31 @@ class SideBar extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(
           right: BorderSide(
-            color: CupertinoColors.systemGrey.withOpacity(0.2),
-            width: 1,
+            color: CupertinoColors.systemGrey5,
           ),
         ),
       ),
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: CupertinoColors.systemGrey.withOpacity(0.2),
-                  width: 1,
+          switch (appState.index) {
+            0 => Expanded(
+                child: appState.outline != null
+                    ? Outline()
+                    : const Center(child: Text('No outline available')),
+              ),
+            1 => const Expanded(child: Center(child: Text('批注'))),
+            2 => const Expanded(child: Center(child: Text('书签'))),
+            3 => const Expanded(child: Center(child: Text('缩略图'))),
+            4 => Expanded(
+                child: Column(
+                  children: [
+                    const SearchBar(),
+                    if (appState.isSearching) const SearchSection()
+                  ],
                 ),
               ),
-            ),
-            child: const Row(
-              children: [
-                Text(
-                  '目录',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (appState.outline != null)
-            Expanded(
-              child: SingleChildScrollView(
-                child: buildOutlineList(appState.outline!),
-              ),
-            ),
+            _ => Container(),
+          }
         ],
       ),
     );

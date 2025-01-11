@@ -35,28 +35,12 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  // final GlobalKey brushButtonKey = GlobalKey();
-  // final GlobalKey underlineButtonKey = GlobalKey();
 
-  // bool isHandSelected = true;
-  // bool isBrushSelected = false;
-  // bool isUnderlineSelected = false;
 
   // 添加一个 Map 来跟踪每个节点的展开状态
   final Map<String, bool> _expandedNodes = {};
 
-  // 新增：重置所有工具状态
-  // void resetToolStates() {
-  //   setState(() {
-  //     isHandSelected = false;
-  //     isBrushSelected = false;
-  //     isUnderlineSelected = false;
-  //   });
-  //   // 同时重置 ViewModel 中的状态
-  //   var appState = Provider.of<ReaderViewModel>(context, listen: false);
-  //   appState.markerVm.isHighlightMode = false;
-  //   appState.markerVm.isUnderlineMode = false;
-  // }
+
 
   // 加载传递的文件路径
   @override
@@ -120,7 +104,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // 大纲列表
     Widget buildOutlineList(List<PdfOutlineNode> nodes, {double indent = 0}) {
       var appState = context.watch<ReaderViewModel>();
-      
+
       return Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -155,8 +139,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     children: [
                       if (node.children.isNotEmpty)
                         Icon(
-                          isExpanded 
-                              ? CupertinoIcons.chevron_down 
+                          isExpanded
+                              ? CupertinoIcons.chevron_down
                               : CupertinoIcons.chevron_right,
                           size: 12,
                           color: CupertinoColors.systemGrey,
@@ -258,343 +242,6 @@ class _MyHomePageState extends State<MyHomePage> {
       );
     }
 
-    // Widget buildToolBar() {
-    //   var appState = context.watch<ReaderViewModel>();
-    //   return Container(
-    //     color: const Color(0xfff7f7f7),
-    //     padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-    //     child: Row(
-    //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    //       children: [
-    //         CupertinoButton(
-    //           padding: const EdgeInsets.all(8.0),
-    //           borderRadius: BorderRadius.circular(8),
-    //           child: const Icon(
-    //             CupertinoIcons.back,
-    //             color: CupertinoColors.systemBlue,
-    //           ),
-    //           onPressed: () {
-    //             Navigator.pop(context);
-    //           },
-    //         ),
-    //         Row(
-    //           mainAxisAlignment: MainAxisAlignment.center,
-    //           children: [
-    //             CupertinoButton(
-    //               padding: const EdgeInsets.all(8.0),
-    //               borderRadius: BorderRadius.circular(8),
-    //               child: Icon(
-    //                 Icons.back_hand_outlined,
-    //                 color: isHandSelected ? CupertinoColors.systemBlue : CupertinoColors.black,
-    //               ),
-    //               onPressed: () {
-    //                 resetToolStates();
-    //                 setState(() {
-    //                   isHandSelected = true;
-    //                 });
-    //               },
-    //             ),
-    //             CupertinoButton(
-    //               key: brushButtonKey,
-    //               padding: const EdgeInsets.all(8.0),
-    //               borderRadius: BorderRadius.circular(8),
-    //               child: Icon(
-    //                 Icons.brush_outlined,
-    //                 color: isBrushSelected 
-    //                     ? appState.markerVm.highlight_color 
-    //                     : CupertinoColors.black,
-    //               ),
-    //               onPressed: () async {
-    //                 if (!isBrushSelected) {
-    //                   resetToolStates();
-    //                   setState(() {
-    //                     isBrushSelected = true;
-    //                   });
-    //                   appState.markerVm.isHighlightMode = true;
-    //                 } else {
-    //                   // 显示颜色选择菜单
-    //                   final RenderBox? button = brushButtonKey.currentContext?.findRenderObject() as RenderBox?;
-    //                   final RenderBox? overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
-
-    //                   if (button != null && overlay != null) {
-    //                     final buttonSize = button.size;
-    //                     final buttonPosition = button.localToGlobal(Offset.zero);
-
-    //                     await showMenu(
-    //                       context: context,
-    //                       shape: RoundedRectangleBorder(
-    //                         borderRadius: BorderRadius.circular(8),
-    //                       ),
-    //                       color: Colors.white,
-    //                       position: RelativeRect.fromLTRB(
-    //                         buttonPosition.dx,
-    //                         buttonPosition.dy + buttonSize.height,
-    //                         buttonPosition.dx + 200,
-    //                         buttonPosition.dy + buttonSize.height + 200
-    //                       ),
-    //                       items: [
-    //                         PopupMenuItem(
-    //                           padding: EdgeInsets.zero,
-    //                           child: Container(
-    //                             width: 200,
-    //                             padding: EdgeInsets.all(8),
-    //                             child: Column(
-    //                               mainAxisSize: MainAxisSize.min,
-    //                               children: [
-    //                                 // 笔画样式选择
-    //                                 Row(
-    //                                   mainAxisAlignment:
-    //                                       MainAxisAlignment.spaceEvenly,
-    //                                   children: [
-    //                                     Container(
-    //                                       width: 80,
-    //                                       height: 30,
-    //                                       decoration: BoxDecoration(
-    //                                         border:
-    //                                             Border.all(color: Colors.blue),
-    //                                         borderRadius:
-    //                                             BorderRadius.circular(15),
-    //                                       ),
-    //                                       child: Center(
-    //                                         child: Container(
-    //                                           height: 2,
-    //                                           width: 60,
-    //                                           color: Colors.blue,
-    //                                         ),
-    //                                       ),
-    //                                     ),
-    //                                     Container(
-    //                                       width: 80,
-    //                                       height: 30,
-    //                                       decoration: BoxDecoration(
-    //                                         border:
-    //                                             Border.all(color: Colors.blue),
-    //                                         borderRadius:
-    //                                             BorderRadius.circular(15),
-    //                                       ),
-    //                                       child: Center(
-    //                                         child: Container(
-    //                                           height: 4,
-    //                                           width: 60,
-    //                                           color: Colors.blue,
-    //                                         ),
-    //                                       ),
-    //                                     ),
-    //                                   ],
-    //                                 ),
-    //                                 SizedBox(height: 12),
-    //                                 // 颜色选择
-    //                                 Wrap(
-    //                                   alignment: WrapAlignment.center,
-    //                                   spacing: 12,
-    //                                   runSpacing: 12,
-    //                                   children: [
-    //                                     Colors.yellow,
-    //                                     Colors.orange,
-    //                                     Colors.red,
-    //                                     Colors.pink,
-    //                                     Colors.green,
-    //                                     Colors.blue,
-    //                                     Colors.purple,
-    //                                     Colors.brown,
-    //                                     Colors.grey,
-    //                                     Colors.black,
-    //                                   ].map((color) => GestureDetector(
-    //                                     onTap: () {
-    //                                       appState.markerVm.highlight_color = color as MaterialColor;
-    //                                       setState(() {});
-    //                                       Navigator.pop(context);
-    //                                     },
-    //                                     child: Container(
-    //                                       width: 30,
-    //                                       height: 30,
-    //                                       decoration: BoxDecoration(
-    //                                         color: color,
-    //                                         shape: BoxShape.circle,
-    //                                         border: Border.all(color: Colors.white, width: 2),
-    //                                         boxShadow: [
-    //                                           BoxShadow(
-    //                                             color: Colors.black.withOpacity(0.1),
-    //                                             blurRadius: 4,
-    //                                             offset: Offset(0, 2),
-    //                                           ),
-    //                                         ],
-    //                                       ),
-    //                                     ),
-    //                                   )).toList(),
-    //                                 ),
-    //                               ],
-    //                             ),
-    //                           ),
-    //                         ),
-    //                       ],
-    //                     );
-    //                   }
-    //                 }
-    //               },
-    //             ),
-    //             CupertinoButton(
-    //               key: underlineButtonKey,
-    //               padding: const EdgeInsets.all(8.0),
-    //               borderRadius: BorderRadius.circular(8),
-    //               child: Icon(
-    //                 Icons.format_underline_outlined,
-    //                 color: isUnderlineSelected 
-    //                     ? appState.markerVm.underline_color 
-    //                     : CupertinoColors.black,
-    //               ),
-    //               onPressed: () async {
-    //                 if (!isUnderlineSelected) {
-    //                   resetToolStates();
-    //                   setState(() {
-    //                     isUnderlineSelected = true;
-    //                   });
-    //                   appState.markerVm.isUnderlineMode = true;
-    //                 } else {
-    //                   final RenderBox? button = underlineButtonKey
-    //                       .currentContext
-    //                       ?.findRenderObject() as RenderBox?;
-    //                   final RenderBox? overlay = Overlay.of(context)
-    //                       .context
-    //                       .findRenderObject() as RenderBox?;
-
-    //                   if (button != null && overlay != null) {
-    //                     final buttonSize = button.size;
-    //                     final buttonPosition =
-    //                         button.localToGlobal(Offset.zero);
-
-    //                     await showMenu(
-    //                       context: context,
-    //                       shape: RoundedRectangleBorder(
-    //                         borderRadius: BorderRadius.circular(8),
-    //                       ),
-    //                       color: Colors.white,
-    //                       position: RelativeRect.fromLTRB(
-    //                           buttonPosition.dx,
-    //                           buttonPosition.dy + buttonSize.height,
-    //                           buttonPosition.dx + 200,
-    //                           buttonPosition.dy + buttonSize.height + 200),
-    //                       items: [
-    //                         PopupMenuItem(
-    //                           padding: EdgeInsets.zero,
-    //                           child: Container(
-    //                             width: 200,
-    //                             padding: EdgeInsets.all(8),
-    //                             child: Column(
-    //                               mainAxisSize: MainAxisSize.min,
-    //                               children: [
-    //                                 // 下划线样式选择
-    //                                 Row(
-    //                                   mainAxisAlignment:
-    //                                       MainAxisAlignment.spaceEvenly,
-    //                                   children: [
-    //                                     Container(
-    //                                       width: 80,
-    //                                       height: 30,
-    //                                       decoration: BoxDecoration(
-    //                                         border: Border.all(
-    //                                             color: Colors.blue),
-    //                                         borderRadius:
-    //                                             BorderRadius.circular(15),
-    //                                       ),
-    //                                       child: Center(
-    //                                         child: Container(
-    //                                           height: 1,
-    //                                           width: 60,
-    //                                           color: Colors.blue,
-    //                                         ),
-    //                                       ),
-    //                                     ),
-    //                                     Container(
-    //                                       width: 80,
-    //                                       height: 30,
-    //                                       decoration: BoxDecoration(
-    //                                         border: Border.all(
-    //                                             color: Colors.blue),
-    //                                         borderRadius:
-    //                                             BorderRadius.circular(15),
-    //                                       ),
-    //                                       child: Center(
-    //                                         child: Container(
-    //                                           height: 2,
-    //                                           width: 60,
-    //                                           color: Colors.blue,
-    //                                         ),
-    //                                       ),
-    //                                     ),
-    //                                   ],
-    //                                 ),
-    //                                 SizedBox(height: 12),
-    //                                 // 颜色选择
-    //                                 Wrap(
-    //                                   alignment: WrapAlignment.center,
-    //                                   spacing: 12,
-    //                                   runSpacing: 12,
-    //                                   children: [
-    //                                     Colors.yellow,
-    //                                     Colors.orange,
-    //                                     Colors.red,
-    //                                     Colors.pink,
-    //                                     Colors.green,
-    //                                     Colors.blue,
-    //                                     Colors.purple,
-    //                                     Colors.brown,
-    //                                     Colors.grey,
-    //                                     Colors.black,
-    //                                   ]
-    //                                       .map((color) => GestureDetector(
-    //                                             onTap: () {
-    //                                               appState.markerVm
-    //                                                       .underline_color =
-    //                                                   color as MaterialColor;
-    //                                               setState(() {});
-    //                                               Navigator.pop(context);
-    //                                             },
-    //                                             child: Container(
-    //                                               width: 30,
-    //                                               height: 30,
-    //                                               decoration: BoxDecoration(
-    //                                                 color: color,
-    //                                                 shape: BoxShape.circle,
-    //                                                 border: Border.all(
-    //                                                     color: Colors.white,
-    //                                                     width: 2),
-    //                                                 boxShadow: [
-    //                                                   BoxShadow(
-    //                                                     color: Colors.black
-    //                                                         .withOpacity(0.1),
-    //                                                     blurRadius: 4,
-    //                                                     offset: Offset(0, 2),
-    //                                                   ),
-    //                                                 ],
-    //                                               ),
-    //                                             ),
-    //                                           ))
-    //                                       .toList(),
-    //                                 ),
-    //                               ],
-    //                             ),
-    //                           ),
-    //                         ),
-    //                       ],
-    //                     );
-    //                   }
-    //                 }
-    //               },
-    //             ),
-    //           ],
-    //         ),
-    //         CupertinoButton(
-    //           padding: EdgeInsets.zero,
-    //           onPressed: () => appState.toggleDarkMode(),
-    //           child: Icon(appState.darkMode
-    //               ? CupertinoIcons.moon
-    //               : CupertinoIcons.sun_max),
-    //         ),
-    //       ],
-    //     ),
-    //   );
-    // }
 
     // appState.pdfViewerController.setZoom(appState.pdfViewerController.centerPosition, zoom);
     Widget buildViewer() {
@@ -604,8 +251,8 @@ class _MyHomePageState extends State<MyHomePage> {
         child: PdfViewer.file(
           appState.selectedFile!.path,
           controller: controller,
-          // 
-          
+          //
+
           params: PdfViewerParams(
             onViewerReady: (pdfDocument, pdfViewerController) {
               // appState.pdfDocument = pdfDocument;
@@ -634,17 +281,16 @@ class _MyHomePageState extends State<MyHomePage> {
             enableTextSelection: true,
             // selectionColor: appState.markerVm.selectionColor,
             onTextSelectionChange: (selections) {
-              // print('文本选择变化: $selections');
-              // appState.updateTextSelections(selections);
-              appState.markerVm.selectedRanges = selections;
-
-              // appState.updateTextSelections(selections);
+              // 只在高亮工具激活时才处理文本选择
+              if (appState.topbarVm.isHandSelected == false) {
+                appState.markerVm.selectedRanges = selections;
+              }
             },
             pagePaintCallbacks: [
               appState.textSearcher.pageTextMatchPaintCallback,
               appState.markerVm.paintMarkers,
-              appState.markerVm.paintUnderlines,
-              appState.markerVm.paintSavedHighlights,  // 添加保存的高亮绘制回调
+              // appState.markerVm.paintUnderlines,
+              // appState.markerVm.paintSavedHighlights, // 恢复保存的高亮绘制回调
             ],
             viewerOverlayBuilder:
                 (BuildContext context, Size size, linkHandler) {
@@ -653,7 +299,6 @@ class _MyHomePageState extends State<MyHomePage> {
                   children: [
                     buildScrollBar(),
                     buildNavigationAndZoomButtons(),
-                 
                   ],
                 ),
               ];

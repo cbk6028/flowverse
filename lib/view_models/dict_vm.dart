@@ -12,7 +12,7 @@ class DictViewModel extends ChangeNotifier {
 
   void query(String word) async {
     print(word.trim());
-    filePath = '/home/z/Downloads/牛津高阶英汉双解词典（第9版）- 带高清版图片/牛津高阶英汉双解词典（第9版）.mdx';
+    filePath = '';
     if (dictvm == null) {
       dictvm = MDictModel(filePath);
       mdict = await dictvm!.getMdict();

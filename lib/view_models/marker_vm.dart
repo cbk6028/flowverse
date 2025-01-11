@@ -1,5 +1,4 @@
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'dart:convert';
@@ -7,160 +6,192 @@ import 'dart:io';
 
 typedef PageNumber = int;
 
+
+
+enum MarkerType { highlight, underline }
+
+
 class Marker {
-  final Color color;
-  final PdfTextRanges ranges;
+  final String key;
+  final Paint paint;
+  final PageNumber pageNumber;
+  // final Color color;
+  // final double strokeWidth;
+  final List<Point> points = []; // 改为可变列表
+  final MarkerType type;
+  // final double opacity;
+  final PdfTextRanges? ranges;
+  // bool isDrawn;
 
-  Marker(this.color, this.ranges);
-}
+  Marker(
+    this.key,
+    this.paint,
+    List<Point> initialPoints, // 改为初始点列表
+    this.pageNumber, {
+    // this.strokeWidth = 0.8,
+    this.type = MarkerType.highlight,
+    // this.opacity = 1.0,
+    this.ranges,
+    // this.isDrawn = false,
+  }) {
+    points.addAll(initialPoints); // 添加初始点
+  }
 
-class Stroke {
-  final Color color;
-  final double strokeWidth;
-  final PdfTextRanges ranges;
-
-  Stroke(this.color, this.ranges, {this.strokeWidth = 0.8});
-}
-
-class SavedHighlight {
-  final Color color;
-  final int pageNumber;
-  final Rect bounds;  // 保存相对于页面的比例位置
-  final double alpha;
-
-  SavedHighlight({
-    required this.color,
-    required this.pageNumber,
-    required this.bounds,
-    this.alpha = 100,
-  });
-
-  // 转换为JSON
   Map<String, dynamic> toJson() {
     return {
-      'color': color.value,
+      // 'color': qcolor.value,
+      'key': key,
+      'paint': paint.toJson(),
+      'points': points.map((p) => {'x': p.x, 'y': p.y}).toList(),
+      // 'strokeWidth': strokeWidth,
       'pageNumber': pageNumber,
-      'bounds': {
-        'left': bounds.left,
-        'top': bounds.top,
-        'right': bounds.right,
-        'bottom': bounds.bottom,
-      },
-      'alpha': alpha,
+      'type': type.name,  // 只保存枚举名称
     };
   }
 
-  // 从JSON恢复
-  factory SavedHighlight.fromJson(Map<String, dynamic> json) {
-    return SavedHighlight(
-      color: Color(json['color']),
-      pageNumber: json['pageNumber'],
-      bounds: Rect.fromLTRB(
-        json['bounds']['left'],
-        json['bounds']['top'],
-        json['bounds']['right'],
-        json['bounds']['bottom'],
-      ),
-      alpha: json['alpha'],
-    );
+  factory Marker.fromJson(Map<String, dynamic> json) {
+    return Marker(
+        json['key'],
+        PaintJson.fromJson(json['paint']),
+        (json['points'] as List)
+            .map((p) => Point<num>(p['x'], p['y']))
+            .toList(),
+        json['pageNumber'],
+        type: MarkerType.values.byName(json['type'].split('.').last),  // 提取枚举名称
+        ranges: null);
   }
 }
+
+extension PaintJson on Paint {
+  Map<String, dynamic> toJson() => {
+        'color': color.value,
+        'style': style.toString(),
+        'strokeWidth': strokeWidth,
+      };
+
+  static Paint fromJson(Map<String, dynamic> json) => Paint()
+    ..color = Color(json['color'])
+    ..style = PaintingStyle.values
+        .firstWhere((e) => e.toString() == json['style'])
+    ..strokeWidth = json['strokeWidth'];
+}
+
 
 class MarkerVewModel extends ChangeNotifier {
   final readerVm;
 
   MarkerVewModel(this.readerVm);
-  // ReaderMarkerViewModel(this.readerViewModel);
-  // List<PdfTextRanges> selectedRanges = [];
-  final Map<PageNumber, List<Marker>> _markers = {};
-  final Map<PageNumber, List<Marker>> _underlinemarkers = {};
+
+  // final Map<PageNumber, List<Marker>> _highlightMarkers = {};
+  // final Map<PageNumber, List<Marker>> _underlineMarkers = {};
+
+  final Map<PageNumber, List<Marker>> _strokes = {};
 
   var selectionColor = Colors.yellow;
 
-  var underline_color = Colors.yellow;
-  var highlight_color = Colors.yellow;
+  var underlineColor = Colors.yellow;
+  var highlightColor = Colors.yellow;
 
   // 添加新的状态标志
   bool isHighlightMode = false;
-
-  // 添加下划线模式标志
   bool isUnderlineMode = false;
+  var currentMarkerType = MarkerType.highlight;
 
   // 撤销和重做栈
   final List<Map<PageNumber, List<Marker>>> _undoStack = [];
   final List<Map<PageNumber, List<Marker>>> _redoStack = [];
 
-  // 保存的高亮列表
-  final List<SavedHighlight> _savedHighlights = [];
 
   // 修改 selectedRanges 的 setter
   set selectedRanges(List<PdfTextRanges> ranges) {
-    _selectedRanges = ranges;
+    // _selectedRanges = ranges;
+
+    if (ranges.isEmpty) {
+      return;
+    }
 
     // 实时应用效果
-    if (isHighlightMode && ranges.isNotEmpty) {
-      // selectionColor = highlight_color;
-      // readerVm.notifyListeners();
-      // 如果在高亮模式下且有选择文本，直接应用高亮
-      for (var range in ranges) {
-        int currentPage = range.pageText.pageNumber;
-        Marker marker = Marker(highlight_color, range);
-        addMarker(currentPage, marker);
-      }
-    } else if (isUnderlineMode && ranges.isNotEmpty) {
-      // 如果在下划线模式下且有选择文本，直接应用下划线
-      for (var range in ranges) {
-        int currentPage = range.pageText.pageNumber;
-        Marker marker = Marker(underline_color, range);
-        addUnderlineMarker(currentPage, marker);
-      }
-    }
+    switch (currentMarkerType) {
+      case MarkerType.highlight:
+        for (var range in ranges) {
+          Paint paint = Paint()
+            ..color = highlightColor.withAlpha(100)
+            ..style = PaintingStyle.fill;
 
-    // notifyListeners();
+          Marker marker = Marker(
+            '',
+            // highlightColor,
+            paint,
+            [],
+            range.pageText.pageNumber,
+            // strokeWidth: 0.8,
+            type: MarkerType.highlight,
+            // opacity: 1.0,
+            ranges: range,
+            // isDrawn: false,
+          );
+          addMarker(marker);
+        }
+        break;
+      case MarkerType.underline:
+        for (var range in ranges) {
+          Paint paint = Paint()
+            ..color = underlineColor
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 0.8;
+
+          Marker marker = Marker(
+            '',
+            // underlineColor,
+            paint,
+            [],
+            range.pageText.pageNumber,
+            // strokeWidth: 0.8,
+            type: MarkerType.underline,
+            // opacity: 1.0,
+            ranges: range,
+            // isDrawn: false,
+          );
+          addMarker(marker);
+        }
+        break;
+    }
   }
 
-  List<PdfTextRanges> get selectedRanges => _selectedRanges;
-  List<PdfTextRanges> _selectedRanges = [];
+  // List<PdfTextRanges> get selectedRanges => _selectedRanges;
+  // List<PdfTextRanges> _selectedRanges = [];
 
-// 新增：添加标记
-  void addMarker(PageNumber pageNumber, Marker marker) {
-    _undoStack.add(Map.from(_markers));
+  // 新增：添加标记
+  void addMarker(Marker marker) {
+    _undoStack.add(Map.from(_strokes));
+
     _redoStack.clear();
-    if (_markers.containsKey(pageNumber)) {
-      _markers[pageNumber]!.add(marker);
-    } else {
-      _markers[pageNumber] = [marker];
-    }
-    // notifyListeners();
-  }
 
-  void addUnderlineMarker(PageNumber pageNumber, Marker marker) {
-    if (_underlinemarkers.containsKey(pageNumber)) {
-      _underlinemarkers[pageNumber]!.add(marker);
+    if (_strokes.containsKey(marker.pageNumber)) {
+      _strokes[marker.pageNumber]!.add(marker);
     } else {
-      _underlinemarkers[pageNumber] = [marker];
+      _strokes[marker.pageNumber] = [marker];
     }
   }
 
   // 新增：移除标记
-  void removeMarker(PageNumber pageNumber, Marker marker) {
-    _undoStack.add(Map.from(_markers));
-    _redoStack.clear();
-    if (_markers.containsKey(pageNumber)) {
-      _markers[pageNumber]!.remove(marker);
-      if (_markers[pageNumber]!.isEmpty) {
-        _markers.remove(pageNumber);
-      }
-      // notifyListeners();
-    }
-  }
+  // void removeMarker(PageNumber pageNumber, Marker marker) {
+  //   _undoStack.add(Map.from(_highlightMarkers));
+  //   _redoStack.clear();
+  //   if (_highlightMarkers.containsKey(pageNumber)) {
+  //     _highlightMarkers[pageNumber]!.remove(marker);
+  //     if (_highlightMarkers[pageNumber]!.isEmpty) {
+  //       _highlightMarkers.remove(pageNumber);
+  //     }
+  //   }
+  // }
 
   // 添加撤销功能
   void undo() {
     if (_undoStack.isNotEmpty) {
-      _redoStack.add(Map.from(_markers));
-      _markers.clear();
-      _markers.addAll(_undoStack.removeLast());
+      _redoStack.add(Map.from(_strokes));
+      _strokes.clear();
+      _strokes.addAll(_undoStack.removeLast());
       // notifyListeners();
       readerVm.notifyListeners();
     }
@@ -169,9 +200,9 @@ class MarkerVewModel extends ChangeNotifier {
   // 添加重做功能
   void redo() {
     if (_redoStack.isNotEmpty) {
-      _undoStack.add(Map.from(_markers));
-      _markers.clear();
-      _markers.addAll(_redoStack.removeLast());
+      _undoStack.add(Map.from(_strokes));
+      _strokes.clear();
+      _strokes.addAll(_redoStack.removeLast());
       // notifyListeners();
       readerVm.notifyListeners();
     }
@@ -180,8 +211,11 @@ class MarkerVewModel extends ChangeNotifier {
   // 保存高亮到文件
   Future<void> saveHighlights(String pdfPath) async {
     final savePath = '${pdfPath}_highlights.json';
-    final highlightsJson = _savedHighlights.map((h) => h.toJson()).toList();
-    debugPrint(savePath);
+    // 合并两个列表中的高亮，使用Set去重
+    // final allHighlights = .toList();
+    final highlightsJson =
+        _strokes.values.expand((h) => h).map((h) => h.toJson()).toList();
+    // debugPrint(savePath);
     await File(savePath).writeAsString(jsonEncode(highlightsJson));
   }
 
@@ -191,118 +225,103 @@ class MarkerVewModel extends ChangeNotifier {
     if (await File(savePath).exists()) {
       final content = await File(savePath).readAsString();
       final List<dynamic> highlightsJson = jsonDecode(content);
-      _savedHighlights.clear();
-      _savedHighlights.addAll(
-        // ignore: unnecessary_cast
-        highlightsJson.map((json) => SavedHighlight.fromJson(json)).toList(),
-      );
+
+
+
+      // 加载新数据
+      for (final json in highlightsJson) {
+        final stroke = Marker.fromJson(json);
+        final pageNumber = stroke.pageNumber;
+
+        if (!_strokes.containsKey(pageNumber)) {
+          _strokes[pageNumber] = [];
+        }
+        _strokes[pageNumber]!.add(stroke);
+      }
+
       readerVm.notifyListeners();
     }
   }
 
-  // 在绘制时保存高亮信息
-  void _saveHighlight(PdfPage page,  Rect bounds, Color color) {
-    // 转换为相对坐标
-    // final relativeRect = Rect.fromLTRB(
-    //   bounds.left / page.width,
-    //   bounds.top / page.height,
-    //   bounds.right / page.width,
-    //   bounds.bottom / page.height,
-    // );
-    // _savedHighlights.add(SavedHighlight(
-    //   color: color,
-    //   pageNumber: page.pageNumber,
-    //   bounds: relativeRect,
-    // ));
-    _savedHighlights.add(SavedHighlight(
-      color: color,
-      pageNumber: page.pageNumber,
-      bounds: bounds,
-    ));
-  }
-
-  //  highlightRect 传入的
-  void paintMarkers(Canvas canvas, Rect highlightRect, PdfPage page) {
-    final markers = _markers[page.pageNumber];
+  void paintMarkers(Canvas canvas, Rect pageRect, PdfPage page) {
+    final markers = _strokes[page.pageNumber];
     if (markers == null) return;
 
     for (final marker in markers) {
-      final paint = Paint()
-        ..color = marker.color.withAlpha(100)
-        ..style = PaintingStyle.fill;
-
-      for (final range in marker.ranges.ranges) {
-        final f = PdfTextRangeWithFragments.fromTextRange(
-          marker.ranges.pageText,
-          range.start,
-          range.end,
-        );
-
-        if (f != null) {
-          final bounds = f.bounds.toRectInPageRect(page: page, pageRect: highlightRect);
-          canvas.drawRect(bounds, paint);
-          // 保存高亮信息
-          _saveHighlight(page, bounds, marker.color);
+      // 过滤保存的
+      if (marker.ranges == null) {
+        final paint = marker.paint;
+        switch (marker.type) {
+          case MarkerType.highlight:
+            canvas.drawRect(
+                Rect.fromLTRB(
+                    marker.points[0].x as double,
+                    marker.points[0].y as double,
+                    marker.points[1].x as double,
+                    marker.points[1].y as double),
+                paint);
+            break;
+          case MarkerType.underline:
+            canvas.drawLine(
+                Offset(
+                    marker.points[0].x as double, marker.points[0].y as double),
+                Offset(
+                    marker.points[1].x as double, marker.points[1].y as double),
+                paint);
+            break;
         }
+        continue;
       }
-    }
-  }
 
-  void paintUnderlines(Canvas canvas, Rect pageRect, PdfPage page) {
-    final markers = _underlinemarkers[page.pageNumber];
-    if (markers == null) return;
+      switch (marker.type) {
+        case MarkerType.highlight:
+          for (final range in marker.ranges!.ranges) {
+            final f = PdfTextRangeWithFragments.fromTextRange(
+              marker.ranges!.pageText,
+              range.start,
+              range.end,
+            );
 
-    for (final marker in markers) {
-      final paint = Paint()
-        ..color = marker.color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 0.8;
+            if (f != null) {
+              final bounds =
+                  f.bounds.toRectInPageRect(page: page, pageRect: pageRect);
+              debugPrint('range ${range}');
+              debugPrint('bounds ${bounds}');
+              debugPrint('$pageRect');
+              canvas.drawRect(bounds, marker.paint);
+              // 保存矩形的四个点
+              marker.points.addAll([
+                Point(bounds.left, bounds.top),
+                Point(bounds.right, bounds.bottom),
+              ]);
+            }
+          }
+          break;
 
-      for (final range in marker.ranges.ranges) {
-        final f = PdfTextRangeWithFragments.fromTextRange(
-          marker.ranges.pageText,
-          range.start,
-          range.end,
-        );
-        if (f != null) {
-          final rect =
-              f.bounds.toRectInPageRect(page: page, pageRect: pageRect);
-          canvas.drawLine(
-            rect.bottomLeft,
-            rect.bottomRight,
-            paint,
-          );
-        }
+        case MarkerType.underline:
+          for (final range in marker.ranges!.ranges) {
+            final f = PdfTextRangeWithFragments.fromTextRange(
+              marker.ranges!.pageText,
+              range.start,
+              range.end,
+            );
+            if (f != null) {
+              final rect =
+                  f.bounds.toRectInPageRect(page: page, pageRect: pageRect);
+              canvas.drawLine(
+                rect.bottomLeft,
+                rect.bottomRight,
+                marker.paint,
+              );
+              // 保存下划线的起点和终点
+              marker.points.addAll([
+                Point(rect.bottomLeft.dx, rect.bottomLeft.dy),
+                Point(rect.bottomRight.dx, rect.bottomRight.dy),
+              ]);
+            }
+          }
+          break;
       }
-    }
-  }
-
-  // 绘制保存的高亮
-  void paintSavedHighlights(Canvas canvas, Rect pageRect, PdfPage page) {
-    final highlights = _savedHighlights.where((h) => h.pageNumber == page.pageNumber);
-    
-    for (final highlight in highlights) {
-      final paint = Paint()
-        ..color = highlight.color.withAlpha(highlight.alpha.toInt())
-        ..style = PaintingStyle.fill;
-
-      // 从相对坐标转换为实际坐标
-      // final actualRect = Rect.fromLTRB(
-      //   highlight.bounds.left * page.width,
-      //   highlight.bounds.top * page.height,
-      //   highlight.bounds.right * page.width,
-      //   highlight.bounds.bottom * page.height,
-      // );
-
-      // 转换为页面坐标系
-      // final displayRect = Rect.fromLTRB(
-      //   pageRect.left + (actualRect.left / page.width) * pageRect.width,
-      //   pageRect.top + (actualRect.top / page.height) * pageRect.height,
-      //   pageRect.left + (actualRect.right / page.width) * pageRect.width,
-      //   pageRect.top + (actualRect.bottom / page.height) * pageRect.height,
-      // );
-
-      canvas.drawRect(highlight.bounds, paint);
     }
   }
 }
