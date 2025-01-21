@@ -322,17 +322,16 @@ class MarkerVewModel extends ChangeNotifier {
     }
   }
 
-  // 新增：移除标记
-  // void removeMarker(PageNumber pageNumber, Marker marker) {
-  //   _undoStack.add(Map.from(_highlightMarkers));
-  //   _redoStack.clear();
-  //   if (_highlightMarkers.containsKey(pageNumber)) {
-  //     _highlightMarkers[pageNumber]!.remove(marker);
-  //     if (_highlightMarkers[pageNumber]!.isEmpty) {
-  //       _highlightMarkers.remove(pageNumber);
-  //     }
-  //   }
-  // }
+  // 获取指定页面的所有标注
+  List<Marker>? getMarkersForPage(int pageNumber) {
+    return _applyStrokes[pageNumber];
+  }
+
+  // 删除指定标注
+  void removeMarker(int pageNumber, Marker marker) {
+    _applyStrokes[pageNumber]?.remove(marker);
+    notifyListeners();
+  }
 
   // 添加撤销功能
   void undo() {

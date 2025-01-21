@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flowverse/models/bookshelf.dart';
 import 'package:flutter/cupertino.dart';
@@ -442,49 +443,122 @@ class BookshelfWidget extends StatelessWidget {
                               menuPosition.top + buttonSize.height,
                             ),
                             items: <PopupMenuEntry>[
+                              // PopupMenuItem(
+                              //   child: Text('添加到喜爱'),
+                              //   onTap: () {
+                              //     // 处理添加到喜爱
+                              //   },
+                              // ),
+                              // PopupMenuItem(
+                              //   child: Text('添加到书架'),
+                              //   onTap: () {
+                              //     // 处理添加到书架
+                              //   },
+                              // ),
+                              // PopupMenuItem(
+                              //   child: Text('多选'),
+                              //   onTap: () {
+                              //     // 处理多选
+                              //   },
+                              // ),
                               PopupMenuItem(
-                                child: Text('添加到喜爱'),
-                                onTap: () {
-                                  // 处理添加到喜爱
-                                },
-                              ),
-                              PopupMenuItem(
-                                child: Text('添加到书架'),
-                                onTap: () {
-                                  // 处理添加到书架
-                                },
-                              ),
-                              PopupMenuItem(
-                                child: Text('多选'),
-                                onTap: () {
-                                  // 处理多选
-                                },
-                              ),
-                              PopupMenuItem(
-                                child: Text('删除'),
+                                child: Text('从书架上删除'),
                                 onTap: () async {
                                   // 处理删除
                                   await dashboardState.removeBook(books[index]);
                                 },
                               ),
-                              PopupMenuItem(
-                                child: Text('编辑'),
-                                onTap: () {
-                                  // 处理编辑
-                                },
-                              ),
+                              // PopupMenuItem(
+                              //   child: Text('编辑'),
+                              //   onTap: () {
+                              //     // 处理编辑
+                              //   },
+                              // ),
                               PopupMenuItem(
                                 child: Text('详细信息'),
                                 onTap: () {
-                                  // 处理详细信息
+                                  final book = books[index];
+                                  showCupertinoDialog(
+                                    context: context,
+                                    builder: (context) => CupertinoAlertDialog(
+                                      title: Text('文件详细信息'),
+                                      content: FutureBuilder<FileStat>(
+                                        future: File(book.path).stat(),
+                                        builder: (context, snapshot) {
+                                          if (!snapshot.hasData) {
+                                            return const CupertinoActivityIndicator();
+                                          }
+                                          
+                                          final stat = snapshot.data!;
+                                          final fileSize = stat.size;
+                                          final modified = stat.modified.toLocal();
+                                          
+                                          return Column(
+                                            children: [
+                                              const SizedBox(height: 8),
+                                              Row(
+                                                children: [
+                                                  const Text('文件名：',
+                                                      style: TextStyle(fontWeight: FontWeight.bold)),
+                                                  Expanded(
+                                                    child: Text(book.name,
+                                                        style: const TextStyle(color: CupertinoColors.systemGrey)),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Row(
+                                                children: [
+                                                  const Text('路径：',
+                                                      style: TextStyle(fontWeight: FontWeight.bold)),
+                                                  Expanded(
+                                                    child: Text(book.path,
+                                                        style: const TextStyle(color: CupertinoColors.systemGrey)),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Row(
+                                                children: [
+                                                  const Text('大小：',
+                                                      style: TextStyle(fontWeight: FontWeight.bold)),
+                                                  Text(
+                                                    _formatFileSize(fileSize),
+                                                    style: const TextStyle(color: CupertinoColors.systemGrey),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Row(
+                                                children: [
+                                                  const Text('修改时间：',
+                                                      style: TextStyle(fontWeight: FontWeight.bold)),
+                                                  Text(
+                                                    '${modified.year}-${modified.month.toString().padLeft(2, '0')}-${modified.day.toString().padLeft(2, '0')} ${modified.hour.toString().padLeft(2, '0')}:${modified.minute.toString().padLeft(2, '0')}',
+                                                    style: const TextStyle(color: CupertinoColors.systemGrey),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      ),
+                                      actions: [
+                                        CupertinoDialogAction(
+                                          child: const Text('确定'),
+                                          onPressed: () => Navigator.pop(context),
+                                        ),
+                                      ],
+                                    ),
+                                  );
                                 },
                               ),
-                              PopupMenuItem(
-                                child: Text('更多操作'),
-                                onTap: () {
-                                  // 处理更多操作
-                                },
-                              ),
+                              // PopupMenuItem(
+                              //   child: Text('更多操作'),
+                              //   onTap: () {
+                              //     // 处理更多操作
+                              //   },
+                              // ),
                             ],
                           );
                         },
@@ -515,4 +589,15 @@ class BookshelfWidget extends StatelessWidget {
             },
           );
   }
+}
+
+String _formatFileSize(int size) {
+  const suffixes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  var i = 0;
+  double s = size.toDouble();
+  while (s >= 1024 && i < suffixes.length - 1) {
+    s /= 1024;
+    i++;
+  }
+  return '${s.toStringAsFixed(2)} ${suffixes[i]}';
 }

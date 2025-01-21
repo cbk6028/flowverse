@@ -5,9 +5,10 @@ import 'package:pdfrx/pdfrx.dart';
 import 'dart:io';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../widgets/custom_text_selection_controls.dart';
-
+import '../widgets/marker_overlay_builder.dart';
 import '../view_models/reader_vm.dart';
 
 import 'sidebar.dart';
@@ -279,7 +280,8 @@ class _MyHomePageState extends State<MyHomePage> {
               // Your customized SelectionArea
               return SelectionArea(
                 selectionControls: CustomTextSelectionControls(appState),
-                contextMenuBuilder: (context, selectableRegionState) => const SizedBox.shrink(),
+                contextMenuBuilder: (context, selectableRegionState) =>
+                    const SizedBox.shrink(),
                 focusNode: FocusNode(),
                 // child: EditableText(
                 //   controller: appState.textEditingController,
@@ -288,7 +290,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 //   style: const TextStyle(),
                 //   cursorColor: Colors.blue,
                 //   backgroundCursorColor: Colors.grey,)
-                  child: child,
+                child: child,
                 // contextMenuBuilder:(context, selectableRegionState) => SizedBox(
                 //   height: 0,),
                 // contextMenuBuilder: (BuildContext context,
@@ -321,7 +323,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 //     anchors: selectableRegionState.contextMenuAnchors,
                 //   );
                 // },
-            
               );
             },
             enableTextSelection: true,
@@ -342,6 +343,11 @@ class _MyHomePageState extends State<MyHomePage> {
             viewerOverlayBuilder:
                 (BuildContext context, Size size, linkHandler) {
               return [
+                // MarkerOverlayBuilder(
+                //   markerVm: appState.markerVm,
+                //   size: size,
+                //   controller: controller,
+                // ),
                 Stack(
                   children: [
                     buildScrollBar(),
@@ -350,6 +356,18 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ];
             },
+            //
+            // Link handling example
+            //
+            linkHandlerParams: PdfLinkHandlerParams(
+              onLinkTap: (link) {
+                if (link.url != null) {
+                  navigateToUrl(link.url!);
+                } else if (link.dest != null) {
+                  controller.goToDest(link.dest);
+                }
+              },
+            ),
           ),
         ),
       );
@@ -392,5 +410,49 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
     );
+  }
+
+  Future<void> navigateToUrl(Uri url) async {
+    if (await shouldOpenUrl(context, url)) {
+      await launchUrl(url);
+    }
+  }
+
+  Future<bool> shouldOpenUrl(BuildContext context, Uri url) async {
+    final result = await showDialog<bool?>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Navigate to URL?'),
+          content: SelectionArea(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  const TextSpan(
+                      text:
+                          'Do you want to navigate to the following location?\n'),
+                  TextSpan(
+                    text: url.toString(),
+                    style: const TextStyle(color: Colors.blue),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Go'),
+            ),
+          ],
+        );
+      },
+    );
+    return result ?? false;
   }
 }

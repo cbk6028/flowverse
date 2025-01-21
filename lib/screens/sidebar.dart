@@ -198,46 +198,76 @@ class Outline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = context.read<ReaderViewModel>().pdfViewerController;
+    final appState = context.watch<ReaderViewModel>();
+    final controller = appState.pdfViewerController;
 
     Widget buildOutlineList(List<PdfOutlineNode> nodes, {double indent = 0}) {
       return Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: nodes.map((node) {
+          final nodeKey = '${node.title}_$indent';
+          final isExpanded = appState.outlineExpandedStates[nodeKey] ?? false;
+
           return Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CupertinoButton(
-                padding: EdgeInsets.zero,
-                onPressed: () {
-                  if (node.dest != null) {
-                    if (kDebugMode) {
-                      debugPrint('goToDest Controller: $controller');
-                      debugPrint('Dest: ${node.dest?.pageNumber}');
-                    }
-                    controller.goToDest(node.dest);
-                  }
-                },
-                child: Container(
-                  padding: EdgeInsets.only(
-                    left: 16 + indent,
-                    right: 16,
-                    top: 8,
-                    bottom: 8,
-                  ),
-                  width: double.infinity,
-                  child: Text(
-                    node.title ?? '',
-                    style: const TextStyle(
-                      color: CupertinoColors.label,
-                      fontSize: 16,
+              Container(
+                padding: EdgeInsets.only(
+                  left: 16 + indent,
+                  right: 16,
+                  top: 8,
+                  bottom: 8,
+                ),
+                width: double.infinity,
+                child: Row(
+                  children: [
+                    if (node.children.isNotEmpty)
+                      GestureDetector(
+                        onTap: () {
+                          appState.outlineExpandedStates[nodeKey] = !isExpanded;
+                          appState.notifyListeners();
+                        },
+                        child: Icon(
+                          isExpanded
+                              ? CupertinoIcons.chevron_down
+                              : CupertinoIcons.chevron_right,
+                          size: 12,
+                          color: CupertinoColors.systemGrey,
+                        ),
+                      ),
+                    SizedBox(width: node.children.isNotEmpty ? 8 : 20),
+                    Expanded(
+                      child: CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        onPressed: () {
+                          if (node.dest != null) {
+                            if (kDebugMode) {
+                              debugPrint('goToDest Controller: $controller');
+                              debugPrint('Dest: ${node.dest?.pageNumber}');
+                            }
+                            controller.goToDest(node.dest);
+                          }
+                        },
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            node.title ?? '',
+                            style: TextStyle(
+                              color: node.dest != null
+                                  ? CupertinoColors.label
+                                  : CupertinoColors.systemGrey,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
-              if (node.children.isNotEmpty)
+              if (node.children.isNotEmpty && isExpanded)
                 Padding(
                   padding: const EdgeInsets.only(left: 0),
                   child: buildOutlineList(node.children, indent: indent + 20),
@@ -251,14 +281,14 @@ class Outline extends StatelessWidget {
     return Expanded(
       child: CupertinoScrollbar(
         child: SingleChildScrollView(
-          child: buildOutlineList(context.watch<ReaderViewModel>().outline!),
+          child: buildOutlineList(appState.outline!),
         ),
       ),
     );
   }
 }
 
-//
+// 
 // 文本搜索视图
 //
 class TextSearchView extends StatefulWidget {
