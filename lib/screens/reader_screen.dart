@@ -6,6 +6,8 @@ import 'dart:io';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 
+import '../widgets/custom_text_selection_controls.dart';
+
 import '../view_models/reader_vm.dart';
 
 import 'sidebar.dart';
@@ -35,12 +37,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-
-
   // 添加一个 Map 来跟踪每个节点的展开状态
   final Map<String, bool> _expandedNodes = {};
-
-
 
   // 加载传递的文件路径
   @override
@@ -242,7 +240,6 @@ class _MyHomePageState extends State<MyHomePage> {
       );
     }
 
-
     // appState.pdfViewerController.setZoom(appState.pdfViewerController.centerPosition, zoom);
     Widget buildViewer() {
       return ColorFiltered(
@@ -278,13 +275,63 @@ class _MyHomePageState extends State<MyHomePage> {
               blurRadius: 10,
               offset: Offset(0, 2),
             ),
+            selectableRegionInjector: (context, child) {
+              // Your customized SelectionArea
+              return SelectionArea(
+                selectionControls: CustomTextSelectionControls(appState),
+                contextMenuBuilder: (context, selectableRegionState) => const SizedBox.shrink(),
+                focusNode: FocusNode(),
+                // child: EditableText(
+                //   controller: appState.textEditingController,
+                //   focusNode: FocusNode(),
+                //   key: appState.editableTextKey,
+                //   style: const TextStyle(),
+                //   cursorColor: Colors.blue,
+                //   backgroundCursorColor: Colors.grey,)
+                  child: child,
+                // contextMenuBuilder:(context, selectableRegionState) => SizedBox(
+                //   height: 0,),
+                // contextMenuBuilder: (BuildContext context,
+                //     SelectableRegionState selectableRegionState) {
+                //   final List<ContextMenuButtonItem> buttonItems = [
+                //     ContextMenuButtonItem(
+                //         label: '高亮',
+                //         onPressed: () {
+                //           // selectableRegionState
+                //           //     .selectAll(SelectionChangedCause.toolbar);
+                //           appState.markerVm.applyMark();
+                //         }),
+                //     ContextMenuButtonItem(
+                //         label: '下划线',
+                //         onPressed: () {
+                //           appState.markerVm.applyMarkU();
+                //           // selectableRegionState
+                //           //     .copySelection(SelectionChangedCause.toolbar);
+                //         }),
+                //     ContextMenuButtonItem(
+                //         label: '删除线',
+                //         onPressed: () {
+                //           appState.markerVm.applyMarkS();
+                //           // selectableRegionState
+                //           //     .copySelection(SelectionChangedCause.toolbar);
+                //         }),
+                //   ];
+                //   return AdaptiveTextSelectionToolbar.buttonItems(
+                //     buttonItems: buttonItems,
+                //     anchors: selectableRegionState.contextMenuAnchors,
+                //   );
+                // },
+            
+              );
+            },
             enableTextSelection: true,
             // selectionColor: appState.markerVm.selectionColor,
             onTextSelectionChange: (selections) {
               // 只在高亮工具激活时才处理文本选择
-              if (appState.topbarVm.isHandSelected == false) {
-                appState.markerVm.selectedRanges = selections;
-              }
+              // if (appState.topbarVm.isHandSelected == false) {
+              appState.markerVm.selectedRanges = selections;
+              // appState.markerVm.applyMark(selections);
+              // }
             },
             pagePaintCallbacks: [
               appState.textSearcher.pageTextMatchPaintCallback,

@@ -109,9 +109,11 @@ class SideBar extends StatelessWidget {
                     ? Outline()
                     : const Center(child: Text('No outline available')),
               ),
-            1 => const Expanded(child: Center(child: Text('批注'))),
+            // 1 => const Expanded(child: Center(child: Text('批注'))),
             2 => const Expanded(child: Center(child: Text('书签'))),
-            3 => const Expanded(child: Center(child: Text('缩略图'))),
+            3 => Expanded(
+                child: ThumbnailView(),
+              ),
             4 => Expanded(
                 child: Column(
                   children: [
@@ -662,24 +664,24 @@ class LeftSidebar extends StatelessWidget {
               appState.toggleOutline(0);
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.comment_outlined),
-            color: Colors.black,
-            tooltip: '批注',
-            onPressed: () {
-              // Handle navigation to 批注
-              appState.toggleOutline(1);
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.bookmark_outline),
-            color: Colors.black,
-            tooltip: '书签',
-            onPressed: () {
-              // Handle navigation to 书签
-              appState.toggleOutline(2);
-            },
-          ),
+          // IconButton(
+          //   icon: const Icon(Icons.comment_outlined),
+          //   color: Colors.black,
+          //   tooltip: '批注',
+          //   onPressed: () {
+          //     // Handle navigation to 批注
+          //     appState.toggleOutline(1);
+          //   },
+          // ),
+          // IconButton(
+          //   icon: const Icon(Icons.bookmark_outline),
+          //   color: Colors.black,
+          //   tooltip: '书签',
+          //   onPressed: () {
+          //     // Handle navigation to 书签
+          //     appState.toggleOutline(2);
+          //   },
+          // ),
           IconButton(
             icon: const Icon(Icons.photo_library_outlined),
             color: Colors.black,
@@ -871,5 +873,60 @@ class _TranslationPanelState extends State<TranslationPanel> {
         ],
       ),
     );
+  }
+}
+
+// 缩略图视图
+class ThumbnailView extends StatelessWidget {
+  const ThumbnailView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = context.watch<ReaderViewModel>();
+    final document = appState.pdfViewerController.documentRef;
+    final controller = appState.pdfViewerController;
+
+    return Container(
+        color: CupertinoColors.systemGrey6,
+        child: document == null
+            ? const Center(child: Text('没有文档'))
+            : PdfDocumentViewBuilder(
+                documentRef: document!,
+                builder: (context, document) => ListView.builder(
+                  itemCount: document?.pages.length,
+                  itemBuilder: (context, index) {
+                    return Container(
+                      margin: const EdgeInsets.all(8),
+                      height: 240,
+                      child: Column(
+                        children: [
+                          SizedBox(
+                            height: 220,
+                            child: CupertinoButton(
+                              padding: EdgeInsets.zero,
+                              onPressed: () => controller.goToPage(
+                                pageNumber: index + 1,
+                                anchor: PdfPageAnchor.top,
+                              ),
+                              child: PdfPageView(
+                                document: document,
+                                pageNumber: index + 1,
+                                alignment: Alignment.center,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '第 ${index + 1} 页',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: CupertinoColors.systemGrey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ));
   }
 }

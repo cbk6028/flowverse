@@ -605,11 +605,10 @@ packages:
   pdfrx:
     dependency: "direct main"
     description:
-      name: pdfrx
-      sha256: "81d22f17f913795c00b8e7cdf0b9ba218942098fa02947d07468632dac6eeafc"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.99"
+      path: "../pdfrx"
+      relative: true
+    source: path
+    version: "1.0.98"
   petitparser:
     dependency: transitive
     description:

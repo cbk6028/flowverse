@@ -57,6 +57,9 @@ class ReaderViewModel extends ChangeNotifier {
 
   var isLeftSidebarVisible = false;
 
+  final TextEditingController textEditingController = TextEditingController();
+  final GlobalKey<EditableTextState> editableTextKey = GlobalKey<EditableTextState>();
+
   void _update() {
     notifyListeners();
   }
@@ -307,5 +310,9 @@ class ReaderViewModel extends ChangeNotifier {
     if (node.dest?.pageNumber == null || currentPageNumber == null)
       return false;
     return node.dest!.pageNumber == currentPageNumber;
+  }
+
+  void showToolbar() {
+    editableTextKey.currentState?.showToolbar();
   }
 }
