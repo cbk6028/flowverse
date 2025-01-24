@@ -66,18 +66,18 @@ class MarkerOverlayBuilder extends StatelessWidget {
               print('右键点击位置: ${details.globalPosition}');
               _showMarkerOptions(context, marker);
             },
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.red, width: 1), // DEBUG: 显示边框
-                color: marker.paint.color.withOpacity(0.1), // 增加透明度方便调试
-              ),
-              child: Center(
-                child: Text(
-                  '${marker.type}',
-                  style: TextStyle(color: Colors.red, fontSize: 15),
-                ),
-              ),
-            ),
+            // child: Container(
+            //   decoration: BoxDecoration(
+            //     border: Border.all(color: Colors.red, width: 1), // DEBUG: 显示边框
+            //     color: marker.paint.color.withOpacity(0.1), // 增加透明度方便调试
+            //   ),
+            //   child: Center(
+            //     child: Text(
+            //       '${marker.type}',
+            //       style: TextStyle(color: Colors.red, fontSize: 15),
+            //     ),
+            //   ),
+            // ),
           ),
         );
       }).toList(),
