@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../view_models/reader_vm.dart';
 
 class CustomTextSelectionControls extends DesktopTextSelectionControls {
@@ -93,7 +94,7 @@ class CustomTextSelectionControls extends DesktopTextSelectionControls {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(CupertinoIcons.add, size: 18),
+              Icon(PhosphorIconsLight.highlighter, size: 18),
               const SizedBox(width: 4),
               const Text('高亮'),
             ],
@@ -108,7 +109,7 @@ class CustomTextSelectionControls extends DesktopTextSelectionControls {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(CupertinoIcons.underline, size: 18),
+              Icon(PhosphorIconsLight.textUnderline, size: 18),
               const SizedBox(width: 4),
               const Text('下划线'),
             ],
@@ -123,7 +124,7 @@ class CustomTextSelectionControls extends DesktopTextSelectionControls {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(CupertinoIcons.strikethrough, size: 18),
+              Icon(PhosphorIconsLight.textStrikethrough, size: 18),
               const SizedBox(width: 4),
               const Text('删除线'),
             ],
@@ -138,7 +139,7 @@ class CustomTextSelectionControls extends DesktopTextSelectionControls {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(CupertinoIcons.doc_on_clipboard, size: 18),
+              Icon(PhosphorIconsLight.copy, size: 18),
               const SizedBox(width: 4),
               const Text('复制'),
             ],

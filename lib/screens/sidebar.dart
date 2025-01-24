@@ -8,6 +8,7 @@ import 'package:webf/webf.dart';
 import '../models/webf.dart';
 
 import '../view_models/reader_vm.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 // 侧边栏
 // 有大纲，搜索等功能
@@ -50,8 +51,8 @@ class SideBar extends StatelessWidget {
                         },
                         child: Icon(
                           isExpanded
-                              ? CupertinoIcons.chevron_down
-                              : CupertinoIcons.chevron_right,
+                              ? PhosphorIconsLight.caretDown
+                              : PhosphorIconsLight.caretRight,
                           size: 12,
                           color: CupertinoColors.systemGrey,
                         ),
@@ -95,11 +96,14 @@ class SideBar extends StatelessWidget {
     return Container(
       width: 250,
       decoration: BoxDecoration(
-        border: Border(
-          right: BorderSide(
-            color: CupertinoColors.systemGrey5,
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(-1, 0),
           ),
-        ),
+        ],
       ),
       child: Column(
         children: [
@@ -231,8 +235,8 @@ class Outline extends StatelessWidget {
                         },
                         child: Icon(
                           isExpanded
-                              ? CupertinoIcons.chevron_down
-                              : CupertinoIcons.chevron_right,
+                              ? PhosphorIconsLight.caretDown
+                              : PhosphorIconsLight.caretRight,
                           size: 12,
                           color: CupertinoColors.systemGrey,
                         ),
@@ -385,7 +389,7 @@ class _TextSearchViewState extends State<TextSearchView> {
                       _conditionScrollPosition();
                     }
                   : null,
-              child: const Icon(CupertinoIcons.arrow_left),
+              child: const Icon(PhosphorIconsLight.arrowLeft),
             ),
             CupertinoButton(
               padding: EdgeInsets.zero,
@@ -396,7 +400,7 @@ class _TextSearchViewState extends State<TextSearchView> {
                       _conditionScrollPosition();
                     }
                   : null,
-              child: const Icon(CupertinoIcons.arrow_right),
+              child: const Icon(PhosphorIconsLight.arrowRight),
             ),
 
             // CupertinoButton(
@@ -663,13 +667,12 @@ class LeftSidebar extends StatelessWidget {
     return Container(
       width: 45, // Narrow sidebar
       decoration: BoxDecoration(
-        color: Colors.grey[200],
+        color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: const Color.fromARGB(255, 46, 43, 43).withOpacity(0.1),
-            spreadRadius: 2,
-            blurRadius: 5,
-            offset: const Offset(0, 0), // changes position of shadow
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(-1, 0),
           ),
         ],
       ),
@@ -677,8 +680,13 @@ class LeftSidebar extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           IconButton(
-            icon: const Icon(Icons.search),
-            color: Colors.black,
+            icon: Icon(
+              PhosphorIconsLight.magnifyingGlass,
+              color: Colors.black87,
+              size: 20,
+            ),
+            color: Colors.transparent,
+            iconSize: 20,
             tooltip: '搜索',
             onPressed: () {
               // Handle navigation to 搜索
@@ -686,8 +694,13 @@ class LeftSidebar extends StatelessWidget {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.menu_outlined),
-            color: Colors.black,
+            icon: Icon(
+              PhosphorIconsLight.list,
+              color: Colors.black87,
+              size: 20,
+            ),
+            color: Colors.transparent,
+            iconSize: 20,
             tooltip: '目录',
             onPressed: () {
               // Handle navigation to 目录
@@ -713,8 +726,13 @@ class LeftSidebar extends StatelessWidget {
           //   },
           // ),
           IconButton(
-            icon: const Icon(Icons.photo_library_outlined),
-            color: Colors.black,
+            icon: Icon(
+              PhosphorIconsLight.images,
+              color: Colors.black87,
+              size: 20,
+            ),
+            color: Colors.transparent,
+            iconSize: 20,
             tooltip: '缩略图',
             onPressed: () {
               // Handle navigation to 缩略图
@@ -736,13 +754,18 @@ class RightSidebar extends StatelessWidget {
 
     return Container(
       width: 45, // Narrow sidebar
-      color: Colors.grey[200],
+      color: Colors.white,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           IconButton(
-            icon: const Icon(Icons.translate_outlined),
-            color: Colors.black,
+            icon: Icon(
+              PhosphorIconsLight.translate,
+              color: Colors.black87,
+              size: 20,
+            ),
+            color: Colors.transparent,
+            iconSize: 20,
             tooltip: '翻译',
             onPressed: () {
               // Handle translation action
@@ -750,8 +773,13 @@ class RightSidebar extends StatelessWidget {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.outbond_outlined),
-            color: Colors.black,
+            icon: Icon(
+              PhosphorIconsLight.arrowSquareOut,
+              color: Colors.black87,
+              size: 20,
+            ),
+            color: Colors.transparent,
+            iconSize: 20,
             tooltip: '导出',
             onPressed: () {
               // Handle translation action
@@ -776,7 +804,7 @@ class RSideBar extends StatelessWidget {
     return Container(
       width: 250,
       padding: const EdgeInsets.all(8.0),
-      color: Colors.grey[200],
+      color: Colors.white,
       child: Column(
         children: [
           switch (_index) {

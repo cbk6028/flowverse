@@ -2,23 +2,9 @@ import 'package:flowverse/view_models/marker_vm.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../view_models/reader_vm.dart';
-
-// class TopBar extends StatelessWidget {
-//   const TopBar({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-
-//       // var appState = context.watch<ReaderViewModel>();
-
-//       return  ChangeNotifierProvider(
-//         create: (_) => TopbarViewModel(),
-//         child: TopBarInner(),
-//       );
-//   }
-// }
 
 class TopBar extends StatefulWidget {
   const TopBar({super.key});
@@ -27,36 +13,40 @@ class TopBar extends StatefulWidget {
   State<TopBar> createState() => _TopBarState();
 }
 
-// class _TopbarState extends State<Topbar> {
-//   @override
-//   Widget build(BuildContext context) {
-//     return const Placeholder();
-//   }
-// }
-
 class _TopBarState extends State<TopBar> {
-  // const _TopbarState({super.key});
-
   @override
   Widget build(BuildContext context) {
-    // var topbar_vm = context.watch<TopbarViewModel>();
     var appState = context.watch<ReaderViewModel>();
 
     return Container(
-      color: const Color(0xfff7f7f7),
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           CupertinoButton(
-            padding: const EdgeInsets.all(8.0),
-            borderRadius: BorderRadius.circular(8),
-            child: const Icon(
-              CupertinoIcons.back,
-              color: CupertinoColors.systemBlue,
+            padding: const EdgeInsets.all(12.0),
+            child: Container(
+              padding: const EdgeInsets.all(8.0),
+              decoration: BoxDecoration(
+                color: Colors.grey.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                PhosphorIconsLight.house,
+                color: Colors.black87,
+                size: 20,
+              ),
             ),
             onPressed: () async {
-              // 保存高亮
               await appState.markerVm.saveHighlights(appState.currentPdfPath);
               if (context.mounted) {
                 Navigator.pop(context);
@@ -67,44 +57,44 @@ class _TopBarState extends State<TopBar> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CupertinoButton(
-                padding: const EdgeInsets.all(8.0),
-                borderRadius: BorderRadius.circular(8),
+                padding: const EdgeInsets.all(12.0),
                 child: Icon(
-                  Icons.back_hand_outlined,
-                  color:
-                      // appState.topbarVm.isHandSelected ?
-                      // CupertinoColors.systemBlue
-                      // :
-                      CupertinoColors.black,
+                  PhosphorIconsLight.hand,
+                  color: Colors.black87,
+                  size: 20,
                 ),
                 onPressed: () {
-                  // appState.topbarVm.resetToolStates();
-                  appState.topbarVm.isHandSelected = true;
-                  appState.markerVm.applyMark();
+                  appState.topbarVm.resetToolStates();
+                  // appState.topbarVm.isHandSelected = true;
+                  // appState.markerVm.applyMark();
                 },
               ),
               CupertinoButton(
                 key: appState.topbarVm.brushButtonKey,
-                padding: const EdgeInsets.all(8.0),
-                borderRadius: BorderRadius.circular(8),
-                child: Icon(Icons.brush_outlined,
-                    color:
-                        // appState.topbarVm.isBrushSelected
-                        // ?
-                        appState.markerVm.highlightColor
-                    // : CupertinoColors.black,
-                    ),
+                padding: const EdgeInsets.all(12.0),
+                child: Container(
+                  padding: const EdgeInsets.all(8.0),
+                  decoration: BoxDecoration(
+                    color: appState.markerVm.highlightColor.withOpacity(0.1),
+                    // ? Colors.blue.withOpacity(0.1)
+                    // : Colors.grey.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    PhosphorIconsLight.highlighter,
+                    color: appState.markerVm.highlightColor,
+                    size: 20,
+                  ),
+                ),
                 onPressed: () async {
                   if (false) {
-                    // if (!appState.topbarVm.isBrushSelected) {
                     appState.topbarVm.resetToolStates();
                     appState.topbarVm.isBrushSelected = true;
-                    // appState.markerVm.isHighlightMode = true;
-                    // appState.markerVm.currentMarkerType = MarkerType.highlight;
+                    appState.markerVm.currentMarkerType = MarkerType.highlight;
                   } else {
-                    // appState.topbarVm.resetToolStates();
+                    appState.topbarVm.resetToolStates();
                     appState.topbarVm.isBrushSelected = true;
-                    // 显示颜色选择菜单
+
                     final RenderBox? button = appState
                         .topbarVm.brushButtonKey.currentContext
                         ?.findRenderObject() as RenderBox?;
@@ -136,7 +126,6 @@ class _TopBarState extends State<TopBar> {
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  // 笔画样式选择
                                   Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceEvenly,
@@ -178,7 +167,6 @@ class _TopBarState extends State<TopBar> {
                                     ],
                                   ),
                                   SizedBox(height: 12),
-                                  // 颜色选择
                                   Wrap(
                                     alignment: WrapAlignment.center,
                                     spacing: 12,
@@ -235,28 +223,29 @@ class _TopBarState extends State<TopBar> {
                   }
                 },
               ),
+              // underline
               CupertinoButton(
                 key: appState.topbarVm.underlineButtonKey,
-                padding: const EdgeInsets.all(8.0),
-                borderRadius: BorderRadius.circular(8),
-                child: Icon(Icons.format_underline_outlined,
-                    color:
-                        // appState.topbarVm.isUnderlineSelected
-                        // ?
-                        appState.markerVm.underlineColor
-                    // : CupertinoColors.black,
-                    ),
+                padding: const EdgeInsets.all(12.0),
+                child: Container(
+                  padding: const EdgeInsets.all(8.0),
+                  decoration: BoxDecoration(
+                    color: appState.markerVm.underlineColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    PhosphorIconsLight.textUnderline,
+                    color: appState.markerVm.underlineColor,
+                    size: 20,
+                  ),
+                ),
                 onPressed: () async {
-                  if (false)
-                  // if (!appState.topbarVm.isUnderlineSelected)
-                  {
+                  if (false) {
                     appState.topbarVm.resetToolStates();
-                    // appState.updateUnderlineState(true);
                     appState.topbarVm.isUnderlineSelected = true;
                     appState.markerVm.currentMarkerType = MarkerType.underline;
                   } else {
-                    // appState.topbarVm.resetToolStates();
-                    // appState.updateUnderlineState(true);
+                    appState.topbarVm.resetToolStates();
                     appState.topbarVm.isUnderlineSelected = true;
 
                     final RenderBox? button = appState
@@ -290,7 +279,6 @@ class _TopBarState extends State<TopBar> {
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  // 下划线样式选择
                                   Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceEvenly,
@@ -332,7 +320,6 @@ class _TopBarState extends State<TopBar> {
                                     ],
                                   ),
                                   SizedBox(height: 12),
-                                  // 颜色选择
                                   Wrap(
                                     alignment: WrapAlignment.center,
                                     spacing: 12,
@@ -389,12 +376,21 @@ class _TopBarState extends State<TopBar> {
                   }
                 },
               ),
+              //
               CupertinoButton(
-                padding: const EdgeInsets.all(8.0),
-                borderRadius: BorderRadius.circular(8),
-                child: Icon(
-                  CupertinoIcons.strikethrough,
-                  color: appState.markerVm.strikethroughColor,
+                padding: const EdgeInsets.all(12.0),
+                child: Container(
+                  padding: const EdgeInsets.all(8.0),
+                  decoration: BoxDecoration(
+                    color:
+                        appState.markerVm.strikethroughColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    PhosphorIconsLight.textStrikethrough,
+                    color: appState.markerVm.strikethroughColor,
+                    size: 20,
+                  ),
                 ),
                 onPressed: () async {
                   final RenderBox? button = appState
@@ -428,7 +424,6 @@ class _TopBarState extends State<TopBar> {
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                // 下划线样式选择
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceEvenly,
@@ -466,7 +461,6 @@ class _TopBarState extends State<TopBar> {
                                   ],
                                 ),
                                 SizedBox(height: 12),
-                                // 颜色选择
                                 Wrap(
                                   alignment: WrapAlignment.center,
                                   spacing: 12,
@@ -485,7 +479,8 @@ class _TopBarState extends State<TopBar> {
                                   ]
                                       .map((color) => GestureDetector(
                                             onTap: () {
-                                              appState.markerVm.strikethroughColor =
+                                              appState.markerVm
+                                                      .strikethroughColor =
                                                   color as MaterialColor;
                                               setState(() {});
                                               Navigator.pop(context);
@@ -522,22 +517,22 @@ class _TopBarState extends State<TopBar> {
                 },
               ),
               CupertinoButton(
-                padding: const EdgeInsets.all(8.0),
-                borderRadius: BorderRadius.circular(8),
+                padding: const EdgeInsets.all(12.0),
                 child: const Icon(
-                  Icons.undo,
+                  PhosphorIconsLight.arrowUUpLeft,
                   color: CupertinoColors.systemBlue,
+                  size: 20,
                 ),
                 onPressed: () {
                   appState.markerVm.undo();
                 },
               ),
               CupertinoButton(
-                padding: const EdgeInsets.all(8.0),
-                borderRadius: BorderRadius.circular(8),
+                padding: const EdgeInsets.all(12.0),
                 child: const Icon(
-                  Icons.redo,
+                  PhosphorIconsLight.arrowUUpRight,
                   color: CupertinoColors.systemBlue,
+                  size: 20,
                 ),
                 onPressed: () {
                   appState.markerVm.redo();
@@ -548,9 +543,27 @@ class _TopBarState extends State<TopBar> {
           CupertinoButton(
             padding: EdgeInsets.zero,
             onPressed: () => appState.toggleDarkMode(),
-            child: Icon(appState.darkMode
-                ? CupertinoIcons.moon
-                : CupertinoIcons.sun_max),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8.0),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      appState.darkMode
+                          ? PhosphorIconsLight.moon
+                          : PhosphorIconsLight.sun,
+                      color: Colors.black87,
+                      size: 20,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),

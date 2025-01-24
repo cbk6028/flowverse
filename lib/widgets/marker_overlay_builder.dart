@@ -1,112 +1,80 @@
-import 'package:flutter/cupertino.dart';
+import 'package:flowverse/view_models/reader_vm.dart';
 import 'package:flutter/material.dart';
 import 'package:pdfrx/pdfrx.dart';
 import '../view_models/marker_vm.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 class MarkerOverlayBuilder extends StatelessWidget {
+  final Rect pageRect;
+  final PdfPage page;
+  final List<Marker> markers;
   final MarkerVewModel markerVm;
-  final Size size;
-  final PdfViewerController controller;
 
   const MarkerOverlayBuilder({
-    super.key,
+    Key? key,
+    required this.pageRect,
+    required this.page,
+    required this.markers,
     required this.markerVm,
-    required this.size,
-    required this.controller,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('MarkerOverlayBuilder build called');
-    debugPrint('Viewer size: $size');
-    
-    final pageNumber = controller.pageNumber!;
-    debugPrint('Current page number: $pageNumber');
-    
-    final markers = markerVm.getMarkersForPage(pageNumber);
-    debugPrint('Markers for page $pageNumber: ${markers?.length ?? 0}');
-    
-    if (markers == null || markers.isEmpty) {
-      debugPrint('No markers found for page $pageNumber');
-      return const SizedBox();
+    print('Building MarkerOverlayBuilder');
+    print('Number of markers: ${markers.length}');
+    print('Page rect: $pageRect');
+    print('Page number: ${page.pageNumber}');
+
+    if (markers.isEmpty) {
+      print('No markers for this page');
+      return const SizedBox.shrink(); // 返回空widget而不是尝试访问空列表
     }
 
-    // 获取当前页面的信息
-    final page = controller.pages[pageNumber - 1];
-    final visibleRect = controller.visibleRect;
-    debugPrint('Page rect: $visibleRect');
-    debugPrint('Page size: ${visibleRect.size}');
-    
     return Stack(
       children: markers.map((marker) {
-        if (marker.points.isEmpty) {
-          debugPrint('Marker has no points');
-          return const SizedBox();
+        // 检查marker.points是否有效
+        if (marker.points.length < 2) {
+          print('Invalid marker points: ${marker.points}');
+          return const SizedBox.shrink();
         }
 
-        debugPrint('Processing marker: ${marker.type}, points: ${marker.points}');
-        
-        // 计算标注在页面中的相对位置
-        final rect = Rect.fromLTRB(
+        // 计算注释的位置和大小
+        final rect = PdfRect(
           marker.points[0].x as double,
           marker.points[0].y as double,
           marker.points[1].x as double,
           marker.points[1].y as double,
         );
-        
-        // 使用 toRect 转换坐标
-        final adjustedRect = rect;
-        // final adjustedRect = rect.toRect(
-        //   page: page,
-        //   scaledPageSize: visibleRect.size,
-        // ).translate(visibleRect.left, visibleRect.top);
-        
-        debugPrint('Original rect: $rect');
-        debugPrint('Adjusted rect: $adjustedRect');
 
-        // 根据标注类型调整点击区域
-        Rect hitRect;
-        switch (marker.type) {
-          case MarkerType.highlight:
-            hitRect = adjustedRect;
-            break;
-          case MarkerType.underline:
-            hitRect = Rect.fromLTRB(
-              adjustedRect.left,
-              adjustedRect.bottom - 10,
-              adjustedRect.right,
-              adjustedRect.bottom + 10,
-            );
-            break;
-          case MarkerType.strikethrough:
-            final midY = (adjustedRect.top + adjustedRect.bottom) / 2;
-            hitRect = Rect.fromLTRB(
-              adjustedRect.left,
-              midY - 10,
-              adjustedRect.right,
-              midY + 10,
-            );
-            break;
-        }
-        debugPrint('Hit rect: $hitRect');
+        print('Marker rect: $rect');
+        print('Marker type: ${marker.type}');
+        print('Marker paint color: ${marker.paint.color}');
+
+        final scaledRect =
+            rect.toRect(page: page, scaledPageSize: pageRect.size);
+        print('Scaled rect: $scaledRect');
 
         return Positioned.fromRect(
-          rect: hitRect,
+          rect: scaledRect,
           child: GestureDetector(
-            onTapDown: (details) {
-              debugPrint('Marker tapped at ${details.globalPosition}');
-              _showMarkerMenu(
-                context,
-                details.globalPosition,
-                pageNumber,
-                marker,
-              );
+            behavior: HitTestBehavior.opaque, // 确保即使透明也能接收点击事件
+            // onTapDown: (details) {
+            //   print('左键点击位置: ${details.globalPosition}');
+            //   _showMarkerOptions(context, marker);
+            // },
+            onSecondaryTapDown: (details) {
+              print('右键点击位置: ${details.globalPosition}');
+              _showMarkerOptions(context, marker);
             },
             child: Container(
-              color: Colors.transparent,
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.blue.withOpacity(0.3)), // 添加边框以便于调试
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.red, width: 1), // DEBUG: 显示边框
+                color: marker.paint.color.withOpacity(0.1), // 增加透明度方便调试
+              ),
+              child: Center(
+                child: Text(
+                  '${marker.type}',
+                  style: TextStyle(color: Colors.red, fontSize: 15),
                 ),
               ),
             ),
@@ -116,27 +84,43 @@ class MarkerOverlayBuilder extends StatelessWidget {
     );
   }
 
-  void _showMarkerMenu(BuildContext context, Offset position, int pageNumber, dynamic marker) {
-    debugPrint('Showing menu for marker at page $pageNumber, position: $position');
-    showCupertinoModalPopup(
+  void _showMarkerOptions(BuildContext context, Marker marker) {
+    print('Calculating menu position');
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
+    final RenderBox button = context.findRenderObject() as RenderBox;
+    final position = button.localToGlobal(Offset.zero, ancestor: overlay);
+    print('Menu position: $position');
+
+    showMenu(
       context: context,
-      builder: (BuildContext context) => CupertinoActionSheet(
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              debugPrint('Delete marker action pressed');
-              Navigator.pop(context);
-              markerVm.removeMarker(pageNumber, marker);
-            },
-            isDestructiveAction: true,
-            child: const Text('删除标注'),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('取消'),
-        ),
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy - button.size.height - 10, // 将菜单位置上移，距离标记 10 像素
+        position.dx + button.size.width,
+        position.dy - 10,
       ),
+      items: [
+        PopupMenuItem(
+          child: Row(
+            children: [
+              Icon(PhosphorIconsLight.trash, color: Colors.red),
+              SizedBox(width: 8),
+              Text('删除注释'),
+            ],
+          ),
+          onTap: () {
+            print('Delete marker tapped');
+            markerVm.removeMarker(marker.pageNumber, marker);
+            // 强制重建
+            if (context.mounted) {
+              Future.microtask(() {
+                markerVm.readerVm.notifyListeners();
+              });
+            }
+          },
+        ),
+      ],
     );
   }
 }

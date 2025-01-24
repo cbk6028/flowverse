@@ -48,6 +48,7 @@ dependencies:
   dict_reader: ^1.1.4
   webf: ^0.16.2
   url_launcher: ^6.3.1
+  phosphor_flutter: ^2.1.0
   # drift: ^2.22.1
   # printing: ^5.12.0
 

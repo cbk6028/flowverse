@@ -1,3 +1,6 @@
+import 'dart:math';
+
+import 'package:flowverse/screens/bottombar.dart';
 import 'package:flowverse/screens/topbar.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -12,6 +15,7 @@ import '../widgets/marker_overlay_builder.dart';
 import '../view_models/reader_vm.dart';
 
 import 'sidebar.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 class ReaderScreen extends StatelessWidget {
   final String filePath;
@@ -67,6 +71,45 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<ReaderViewModel>();
+
+    return CupertinoPageScaffold(
+      child: SafeArea(
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                TopBar(),
+                Expanded(
+                  child: Row(
+                    children: [
+                      LeftSidebar(),
+                      if (appState.isSidebarVisible) const SideBar(),
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          children: [
+                            Expanded(
+                              child: buildViewer(),
+                            ),
+                            BottomBar(),
+                          ],
+                        ),
+                      ),
+                      if (appState.isLeftSidebarVisible) const RSideBar(),
+                      RightSidebar(),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget buildViewer() {
     var appState = context.watch<ReaderViewModel>();
     final controller = appState.pdfViewerController;
 
@@ -139,8 +182,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       if (node.children.isNotEmpty)
                         Icon(
                           isExpanded
-                              ? CupertinoIcons.chevron_down
-                              : CupertinoIcons.chevron_right,
+                              ? PhosphorIconsLight.caretDown
+                              : PhosphorIconsLight.caretRight,
                           size: 12,
                           color: CupertinoColors.systemGrey,
                         ),
@@ -186,7 +229,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 child: CupertinoButton(
                   padding: const EdgeInsets.all(8.0),
-                  child: const Icon(CupertinoIcons.back,
+                  child: const Icon(PhosphorIconsLight.arrowLeft,
                       color: CupertinoColors.white),
                   onPressed: () {
                     appState.goToPreviousPage();
@@ -200,7 +243,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 child: CupertinoButton(
                   padding: const EdgeInsets.all(8.0),
-                  child: const Icon(CupertinoIcons.forward,
+                  child: const Icon(PhosphorIconsLight.arrowRight,
                       color: CupertinoColors.white),
                   onPressed: () {
                     appState.goToNextPage();
@@ -214,7 +257,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 child: CupertinoButton(
                   padding: const EdgeInsets.all(8.0),
-                  child: const Icon(CupertinoIcons.add,
+                  child: const Icon(PhosphorIconsLight.plus,
                       color: CupertinoColors.white),
                   onPressed: () {
                     appState.zoomUp();
@@ -228,7 +271,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 child: CupertinoButton(
                   padding: const EdgeInsets.all(8.0),
-                  child: const Icon(CupertinoIcons.minus,
+                  child: const Icon(PhosphorIconsLight.minus,
                       color: CupertinoColors.white),
                   onPressed: () {
                     appState.zoomDown();
@@ -343,16 +386,23 @@ class _MyHomePageState extends State<MyHomePage> {
             viewerOverlayBuilder:
                 (BuildContext context, Size size, linkHandler) {
               return [
-                // MarkerOverlayBuilder(
-                //   markerVm: appState.markerVm,
-                //   size: size,
-                //   controller: controller,
-                // ),
                 Stack(
                   children: [
                     buildScrollBar(),
                     buildNavigationAndZoomButtons(),
                   ],
+                ),
+              ];
+            },
+
+            pageOverlaysBuilder: (context, pageRect, page) {
+              return [
+                MarkerOverlayBuilder(
+                  pageRect: pageRect,
+                  page: page,
+                  markers:
+                      appState.markerVm.applyStrokes[page.pageNumber] ?? [],
+                  markerVm: appState.markerVm,
                 ),
               ];
             },
@@ -368,48 +418,73 @@ class _MyHomePageState extends State<MyHomePage> {
                 }
               },
             ),
+            layoutPages: (pages, params) {
+              final width =
+                  pages.fold(0.0, (prev, page) => max(prev, page.width));
+              final pageLayouts = <Rect>[];
+              final offset = 0; // 使用第一页作为封面
+              double y = params.margin;
+
+              for (int i = 0; i < pages.length; i++) {
+                final page = pages[i];
+
+                if (!appState.isDoublePageMode) {
+                  // 单页模式
+                  pageLayouts.add(
+                    Rect.fromLTWH(
+                      params.margin,
+                      y,
+                      page.width,
+                      page.height,
+                    ),
+                  );
+                  y += page.height + params.margin;
+                  // + params.margin;
+                  continue;
+                }
+
+                // 双页模式
+                final pos = i + offset;
+                final isLeft = (pos & 1) == 0;
+
+                final otherSide = (pos ^ 1) - offset;
+                final h = 0 <= otherSide && otherSide < pages.length
+                    ? max(page.height, pages[otherSide].height)
+                    : page.height;
+
+                // 控制每页的 x y 位置（相对位置）
+                pageLayouts.add(
+                  Rect.fromLTWH(
+                    isLeft
+                        ? width + params.margin - page.width
+                        : params.margin + params.margin / 2.0 + width,
+                    y + (h - page.height) / 2,
+                    page.width,
+                    page.height,
+                  ),
+                );
+
+                if (pos & 1 == 1 || i + 1 == pages.length) {
+                  y += h + params.margin;
+                }
+              }
+
+              return PdfPageLayout(
+                pageLayouts: pageLayouts,
+                documentSize: Size(
+                  appState.isDoublePageMode
+                      ? (params.margin + width) * 2 + params.margin
+                      : params.margin * 2 + width,
+                  y,
+                ),
+              );
+            },
           ),
         ),
       );
     }
 
-    return CupertinoPageScaffold(
-      // navigationBar: buildToolBar(),
-      child: SafeArea(
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                // buildToolBar(),
-                TopBar(),
-                // Divider(
-                //   color: Colors.black,
-                //   thickness: 0.1,
-                // ),
-                Expanded(
-                  child: Row(
-                    children: [
-                      LeftSidebar(),
-                      if (appState.isSidebarVisible) const SideBar(),
-                      Expanded(
-                        flex: 3,
-                        child: Stack(
-                          children: [
-                            buildViewer(),
-                          ],
-                        ),
-                      ),
-                      if (appState.isLeftSidebarVisible) const RSideBar(),
-                      RightSidebar(),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
+    return buildViewer();
   }
 
   Future<void> navigateToUrl(Uri url) async {

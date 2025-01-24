@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pdfrx/pdfrx.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import 'reader_screen.dart'; // 导入阅读器页面
 import '../view_models/dashboard_vm.dart';
@@ -81,21 +82,21 @@ class DashboardScreenInnerState extends State<DashboardScreenInner> {
               child: ListView(
                 children: [
                   CupertinoListTile(
-                    leading: Icon(CupertinoIcons.home),
+                    leading: Icon(PhosphorIconsLight.house),
                     title: Text('主页'),
                     onTap: () {
                       // 处理主页点击事件
                     },
                   ),
                   CupertinoListTile(
-                    leading: Icon(CupertinoIcons.book),
+                    leading: Icon(PhosphorIconsLight.book),
                     title: Text('PDF 工具集'),
                     onTap: () {
                       // 处理书架点击事件
                     },
                   ),
                   CupertinoListTile(
-                    leading: Icon(CupertinoIcons.settings),
+                    leading: Icon(PhosphorIconsLight.gear),
                     title: Text('设置'),
                     onTap: () {
                       // 处理设置点击事件
@@ -123,7 +124,7 @@ class DashboardScreenInnerState extends State<DashboardScreenInner> {
                     color: CupertinoColors.activeBlue,
                     borderRadius: BorderRadius.circular(30),
                     child: Icon(
-                      CupertinoIcons.add,
+                      PhosphorIconsLight.plus,
                       color: CupertinoColors.white,
                       size: 28,
                     ),
@@ -285,7 +286,7 @@ class _PdfThumbnailState extends State<PdfThumbnail> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
         ),
         child: Center(
-          child: Icon(CupertinoIcons.doc_text_fill,
+          child: Icon(PhosphorIconsLight.fileText,
               size: 48, color: CupertinoColors.systemGrey),
         ),
       );
@@ -305,7 +306,7 @@ class _PdfThumbnailState extends State<PdfThumbnail> {
                 width: double.infinity,
               )
             : Center(
-                child: Icon(CupertinoIcons.doc_text_fill,
+                child: Icon(PhosphorIconsLight.fileText,
                     size: 48, color: CupertinoColors.systemGrey),
               ),
       ),
@@ -576,7 +577,7 @@ class BookshelfWidget extends StatelessWidget {
                             ],
                           ),
                           child: Icon(
-                            CupertinoIcons.ellipsis,
+                            PhosphorIconsLight.dotsThree,
                             color: CupertinoColors.black,
                             size: 20,
                           ),

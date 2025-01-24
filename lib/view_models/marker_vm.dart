@@ -6,6 +6,18 @@ import 'dart:io';
 
 typedef PageNumber = int;
 
+// 定义操作类型
+enum MarkerOperation { add, remove }
+
+// 定义操作记录类
+class MarkerAction {
+  final Marker marker;
+  final MarkerOperation operation;
+  final int pageNumber;
+
+  MarkerAction(this.marker, this.operation, this.pageNumber);
+}
+
 enum MarkerType { highlight, underline, strikethrough }
 
 class Archive {
@@ -122,12 +134,12 @@ class MarkerVewModel extends ChangeNotifier {
   // final Map<PageNumber, List<Marker>> _underlineMarkers = {};
 
   final Map<PageNumber, List<Marker>> _strokes = {};
-  Map<PageNumber, List<Marker>> _applyStrokes = {};
+  Map<PageNumber, List<Marker>> applyStrokes = {};
   List<PdfTextRanges> selectedRanges = [];
 
   var selectionColor = Colors.yellow;
 
-  var underlineColor = Colors.yellow;
+  var underlineColor = Colors.blue;
   var highlightColor = Colors.yellow;
 
   // 添加新的状态标志
@@ -136,11 +148,10 @@ class MarkerVewModel extends ChangeNotifier {
   var currentMarkerType = MarkerType.highlight;
 
   // 撤销和重做栈
-  // final List<Map<PageNumber, Marker>> _undoStack = [];
-  final List<Marker> _undoStack = [];
-  final List<Marker> _redoStack = [];
+  final List<MarkerAction> _undoStack = [];
+  final List<MarkerAction> _redoStack = [];
 
-  var strikethroughColor = Colors.yellow;
+  var strikethroughColor = Colors.red;
 
   // 修改 selectedRanges 的 setter
   // set selectedRanges(List<PdfTextRanges> ranges) {
@@ -157,7 +168,7 @@ class MarkerVewModel extends ChangeNotifier {
     for (var range in ranges) {
       Paint paint = Paint()
         ..color = strikethroughColor
-         ..strokeWidth = 0.8
+        ..strokeWidth = 0.8
         ..style = PaintingStyle.fill;
 
       Marker marker = Marker(
@@ -175,7 +186,7 @@ class MarkerVewModel extends ChangeNotifier {
   }
 
   void applyMark() {
-    // _applyStrokes = Map.from(_strokes);
+    // applyStrokes = Map.from(_strokes);
     // _selectedRanges = ranges;
     var ranges = selectedRanges;
 
@@ -191,7 +202,6 @@ class MarkerVewModel extends ChangeNotifier {
           //  print('range.pageText.pageNumber: ${range.pageText.pageNumber}');
           Paint paint = Paint()
             ..color = highlightColor.withAlpha(100)
-           
             ..style = PaintingStyle.fill;
 
           Marker marker = Marker(
@@ -235,14 +245,14 @@ class MarkerVewModel extends ChangeNotifier {
         break;
     }
 
-    // _applyStrokes = Map.from(_strokes);
+    // applyStrokes = Map.from(_strokes);
 
     // notifysListeners();
     readerVm.notifyListeners();
   }
 
   void applyMarkU() {
-    // _applyStrokes = Map.from(_strokes);
+    // applyStrokes = Map.from(_strokes);
     // _selectedRanges = ranges;
     var ranges = selectedRanges;
 
@@ -299,7 +309,7 @@ class MarkerVewModel extends ChangeNotifier {
         break;
     }
 
-    // _applyStrokes = Map.from(_strokes);
+    // applyStrokes = Map.from(_strokes);
 
     // notifysListeners();
     readerVm.notifyListeners();
@@ -310,59 +320,89 @@ class MarkerVewModel extends ChangeNotifier {
 
   // 新增：添加标记
   void addMarker(Marker marker) {
-    // 保存当前标记到撤销栈
-    _undoStack.add(marker);
+    if (!applyStrokes.containsKey(marker.pageNumber)) {
+      applyStrokes[marker.pageNumber] = [];
+    }
+    applyStrokes[marker.pageNumber]!.add(marker);
+    
+    // 记录添加操作
+    _undoStack.add(MarkerAction(marker, MarkerOperation.add, marker.pageNumber));
+    _redoStack.clear(); // 清空重做栈
+    
+  
+    readerVm.notifyListeners();
+  }
+
+  void removeMarker(int pageNumber, Marker marker) {
+    applyStrokes[pageNumber]?.remove(marker);
+    
+    // 记录删除操作
+    _undoStack.add(MarkerAction(marker, MarkerOperation.remove, pageNumber));
     _redoStack.clear();
 
-    // 添加新标记
-    if (_applyStrokes.containsKey(marker.pageNumber)) {
-      _applyStrokes[marker.pageNumber]!.add(marker);
-    } else {
-      _applyStrokes[marker.pageNumber] = [marker];
+    // 如果页面的标注列表为空，删除该页面的记录
+    if (applyStrokes[pageNumber]?.isEmpty ?? false) {
+      applyStrokes.remove(pageNumber);
     }
+
+    readerVm.notifyListeners();
+  }
+
+  void undo() {
+    if (_undoStack.isEmpty) return;
+
+    final action = _undoStack.removeLast();
+    _redoStack.add(action);
+
+    switch (action.operation) {
+      case MarkerOperation.add:
+        // 撤销添加操作 -> 执行删除
+        applyStrokes[action.pageNumber]?.remove(action.marker);
+        if (applyStrokes[action.pageNumber]?.isEmpty ?? false) {
+          applyStrokes.remove(action.pageNumber);
+        }
+        break;
+      case MarkerOperation.remove:
+        // 撤销删除操作 -> 执行添加
+        if (!applyStrokes.containsKey(action.pageNumber)) {
+          applyStrokes[action.pageNumber] = [];
+        }
+        applyStrokes[action.pageNumber]!.add(action.marker);
+        break;
+    }
+
+    readerVm.notifyListeners();
+  }
+
+  void redo() {
+    if (_redoStack.isEmpty) return;
+
+    final action = _redoStack.removeLast();
+    _undoStack.add(action);
+
+    switch (action.operation) {
+      case MarkerOperation.add:
+        // 重做添加操作 -> 执行添加
+        if (!applyStrokes.containsKey(action.pageNumber)) {
+          applyStrokes[action.pageNumber] = [];
+        }
+        applyStrokes[action.pageNumber]!.add(action.marker);
+        break;
+      case MarkerOperation.remove:
+        // 重做删除操作 -> 执行删除
+        applyStrokes[action.pageNumber]?.remove(action.marker);
+        if (applyStrokes[action.pageNumber]?.isEmpty ?? false) {
+          applyStrokes.remove(action.pageNumber);
+        }
+        break;
+    }
+
+    readerVm.notifyListeners();
   }
 
   // 获取指定页面的所有标注
   List<Marker>? getMarkersForPage(int pageNumber) {
-    return _applyStrokes[pageNumber];
-  }
-
-  // 删除指定标注
-  void removeMarker(int pageNumber, Marker marker) {
-    _applyStrokes[pageNumber]?.remove(marker);
-    notifyListeners();
-  }
-
-  // 添加撤销功能
-  void undo() {
-    if (_undoStack.isNotEmpty) {
-      var marker = _undoStack.removeLast();
-      _redoStack.add(marker);
-
-      // 从当前标记中移除最后添加的标记
-      if (_applyStrokes.containsKey(marker.pageNumber)) {
-        _applyStrokes[marker.pageNumber]!.remove(marker);
-      }
-
-      readerVm.notifyListeners();
-    }
-  }
-
-  // 添加重做功能
-  void redo() {
-    if (_redoStack.isNotEmpty) {
-      var marker = _redoStack.removeLast();
-      _undoStack.add(marker);
-
-      // 重新添加标记
-      if (_applyStrokes.containsKey(marker.pageNumber)) {
-        _applyStrokes[marker.pageNumber]!.add(marker);
-      } else {
-        _applyStrokes[marker.pageNumber] = [marker];
-      }
-
-      readerVm.notifyListeners();
-    }
+    return applyStrokes[pageNumber];
   }
 
   // 保存高亮到文件
@@ -372,7 +412,7 @@ class MarkerVewModel extends ChangeNotifier {
       dateCreated: DateTime.now(),
       dateModified: DateTime.now(),
     );
-    archive.markers = Map.from(_applyStrokes);
+    archive.markers = Map.from(applyStrokes);
 
     final archiveJson = jsonEncode(archive.toJson());
     await File(savePath).writeAsString(archiveJson);
@@ -386,14 +426,14 @@ class MarkerVewModel extends ChangeNotifier {
       final json = jsonDecode(content) as Map<String, dynamic>;
       final archive = Archive.fromJson(json);
 
-      _applyStrokes = Map.from(archive.markers);
+      applyStrokes = Map.from(archive.markers);
 
       readerVm.notifyListeners();
     }
   }
 
   void paintMarkers(Canvas canvas, Rect pageRect, PdfPage page) {
-    final markers = _applyStrokes[page.pageNumber];
+    final markers = applyStrokes[page.pageNumber];
     if (markers == null) return;
 
     for (final marker in markers) {
@@ -403,35 +443,35 @@ class MarkerVewModel extends ChangeNotifier {
         switch (marker.type) {
           case MarkerType.highlight:
             canvas.drawRect(
-                Rect.fromLTRB(
-                    marker.points[0].x as double,
-                    marker.points[0].y as double,
-                    marker.points[1].x as double,
-                    marker.points[1].y as double),
+                PdfRect(
+                        marker.points[0].x as double,
+                        marker.points[0].y as double,
+                        marker.points[1].x as double,
+                        marker.points[1].y as double)
+                    .toRectInPageRect(page: page, pageRect: pageRect),
                 paint);
             break;
           case MarkerType.underline:
-            canvas.drawLine(
-                Offset(
-                    marker.points[0].x as double, marker.points[0].y as double),
-                Offset(
-                    marker.points[1].x as double, marker.points[1].y as double),
-                paint);
+            Rect rect = PdfRect(
+                    marker.points[0].x as double,
+                    marker.points[0].y as double,
+                    marker.points[1].x as double,
+                    marker.points[1].y as double)
+                .toRectInPageRect(page: page, pageRect: pageRect);
+            canvas.drawLine(Offset(rect.left, rect.bottom),
+                Offset(rect.right, rect.bottom), paint);
             break;
 
           case MarkerType.strikethrough:
-            canvas.drawLine(
-                Offset(
+            Rect rect = PdfRect(
                     marker.points[0].x as double,
-                    (marker.points[0].y +
-                            marker.points[1].y) /
-                        2),
-                Offset(
+                    marker.points[0].y as double,
                     marker.points[1].x as double,
-                    (marker.points[1].y +
-                            marker.points[0].y) /
-                        2),
-                paint);
+                    marker.points[1].y as double)
+                .toRectInPageRect(page: page, pageRect: pageRect);
+
+            canvas.drawLine(Offset(rect.left, (rect.bottom + rect.top) / 2),
+                Offset(rect.right, (rect.bottom + rect.top) / 2), paint);
             break;
         }
         continue;
@@ -458,8 +498,10 @@ class MarkerVewModel extends ChangeNotifier {
                 break;
               }
               marker.points.addAll([
-                Point(bounds.left, bounds.top),
-                Point(bounds.right, bounds.bottom),
+                // Point(bounds.left, bounds.top),
+                // Point(bounds.right, bounds.bottom),
+                Point(f.bounds.left, f.bounds.top),
+                Point(f.bounds.right, f.bounds.bottom),
               ]);
             }
           }
@@ -486,8 +528,10 @@ class MarkerVewModel extends ChangeNotifier {
               }
               // 保存下划线的起点和终点
               marker.points.addAll([
-                Point(rect.bottomLeft.dx, rect.bottomLeft.dy),
-                Point(rect.bottomRight.dx, rect.bottomRight.dy),
+                // Point(rect.bottomLeft.dx, rect.bottomLeft.dy),
+                // Point(rect.bottomRight.dx, rect.bottomRight.dy),
+                Point(f.bounds.left, f.bounds.top),
+                Point(f.bounds.right, f.bounds.bottom),
               ]);
             }
           }
@@ -512,10 +556,12 @@ class MarkerVewModel extends ChangeNotifier {
               if (!marker.points.isEmpty) {
                 break;
               }
-      
+
               marker.points.addAll([
-                Point(rect.left, rect.top),
-                Point(rect.right, rect.bottom),
+                // Point(rect.left, rect.top),
+                // Point(rect.right, rect.bottom),
+                Point(f.bounds.left, f.bounds.top),
+                Point(f.bounds.right, f.bounds.bottom),
               ]);
             }
           }

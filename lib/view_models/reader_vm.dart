@@ -12,12 +12,12 @@ import 'dart:io';
 
 import 'dict_vm.dart';
 
-class Marker {
-  final Color color;
-  final PdfTextRanges ranges;
+// class Marker {
+//   final Color color;
+//   final PdfTextRanges ranges;
 
-  Marker(this.color, this.ranges);
-}
+//   Marker(this.color, this.ranges);
+// }
 
 class ReaderViewModel extends ChangeNotifier {
   late final MarkerVewModel markerVm;
@@ -59,6 +59,16 @@ class ReaderViewModel extends ChangeNotifier {
 
   final TextEditingController textEditingController = TextEditingController();
   final GlobalKey<EditableTextState> editableTextKey = GlobalKey<EditableTextState>();
+
+  // 双页模式
+  bool _isDoublePageMode = false;
+  bool get isDoublePageMode => _isDoublePageMode;
+  set isDoublePageMode(bool value) {
+    if (_isDoublePageMode != value) {
+      _isDoublePageMode = value;
+      notifyListeners();
+    }
+  }
 
   void _update() {
     notifyListeners();
