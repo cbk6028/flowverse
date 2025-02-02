@@ -1,7 +1,4 @@
 import 'package:file_picker/file_picker.dart';
-import 'package:flowverse/screens/topbar.dart';
-import 'package:flowverse/view_models/marker_vm.dart';
-import 'package:flowverse/view_models/topbar_vm.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pdfrx/pdfrx.dart';
@@ -10,7 +7,6 @@ import 'dart:io';
 // import 'package:provider/provider.dart';
 // import 'package:synchronized/extension.dart';
 
-import 'dict_vm.dart';
 
 // class Marker {
 //   final Color color;
@@ -20,14 +16,14 @@ import 'dict_vm.dart';
 // }
 
 class ReaderViewModel extends ChangeNotifier {
-  late final MarkerVewModel markerVm;
-  final DictViewModel dictVm = DictViewModel();
-  late final TopbarViewModel topbarVm;
+  // late final MarkerVewModel markerVm;
+  // final DictViewModel dictVm = DictViewModel();
+  // late final TopbarViewModel topbarVm;
   String currentPdfPath = '';  // 添加当前PDF路径
 
   ReaderViewModel() {
-    topbarVm = TopbarViewModel(this); // 传入 this
-    markerVm = MarkerVewModel(this);
+    // topbarVm = TopbarViewModel(this); // 传入 this
+    // markerVm = MarkerVewModel();
   }
 
   final PdfViewerController pdfViewerController = PdfViewerController();
@@ -79,10 +75,10 @@ class ReaderViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateUnderlineState(bool value) {
-    topbarVm.isUnderlineSelectedState = value;
-    notifyListeners();
-  }
+  // void updateUnderlineState(bool value) {
+  //   topbarVm.isUnderlineSelectedState = value;
+  //   notifyListeners();
+  // }
 
   // void notifyListenersForChildren() {
   //   super.notifyListeners();

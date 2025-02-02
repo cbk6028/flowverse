@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 
 class TopbarViewModel extends ChangeNotifier {
   // 组合 模式
-  final readerVm;
+  // final readerVm;
 
-  TopbarViewModel(this.readerVm); // 构造函数
+  TopbarViewModel(); // 构造函数
 
   bool isHandSelected = true;
   bool isBrushSelected = false;
@@ -14,25 +14,26 @@ class TopbarViewModel extends ChangeNotifier {
   final GlobalKey brushButtonKey = GlobalKey();
   final GlobalKey underlineButtonKey = GlobalKey();
 
+
   void resetToolStates() {
     isHandSelected = false;
     isBrushSelected = false;
     isUnderlineSelected = false;
-    readerVm.notifyListeners();
+    // readerVm.notifyListeners();
   }
 
   set isHandSelectedState(bool value) {
     isHandSelected = value;
-    readerVm.notifyListeners();
+    // readerVm.notifyListeners();
   }
 
   set isBrushSelectedState(bool value) {
     isBrushSelected = value;
-    readerVm.notifyListeners();
+    // readerVm.notifyListeners();
   }
 
   set isUnderlineSelectedState(bool value) {
     isUnderlineSelected = value;
-    readerVm.notifyListeners();
+    // readerVm.notifyListeners();
   }
 }

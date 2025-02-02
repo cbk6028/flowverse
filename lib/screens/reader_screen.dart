@@ -2,12 +2,14 @@ import 'dart:math';
 
 import 'package:flowverse/screens/bottombar.dart';
 import 'package:flowverse/screens/topbar.dart';
+import 'package:flowverse/view_models/marker_vm.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'dart:io';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
+import 'package:simple_painter/simple_painter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../widgets/custom_text_selection_controls.dart';
@@ -16,16 +18,22 @@ import '../view_models/reader_vm.dart';
 
 import 'sidebar.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:flowverse/widgets/drawing_overlay.dart';
+import 'package:flowverse/provider/drawing_provider.dart';
 
 class ReaderScreen extends StatelessWidget {
   final String filePath;
-
-  ReaderScreen({required this.filePath});
+  const ReaderScreen({Key? key, required this.filePath}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => ReaderViewModel(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => DrawingProvider()),
+        ChangeNotifierProvider(create: (_) => ReaderViewModel()),
+        ChangeNotifierProvider(create: (_) => MarkerVewModel()),
+
+      ],
       child: MyHomePage(selectedFilePath: filePath),
     );
   }
@@ -44,6 +52,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   // 添加一个 Map 来跟踪每个节点的展开状态
   final Map<String, bool> _expandedNodes = {};
+
 
   // 加载传递的文件路径
   @override
@@ -64,14 +73,15 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void dispose() {
     // 保存高亮
-    var appState = context.read<ReaderViewModel>();
-    appState.markerVm.saveHighlights(widget.selectedFilePath);
+     var markerVm = context.read<MarkerVewModel>();
+    markerVm.saveArchive(widget.selectedFilePath);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<ReaderViewModel>();
+     var markerVm = context.read<MarkerVewModel>();
 
     return CupertinoPageScaffold(
       child: SafeArea(
@@ -111,6 +121,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget buildViewer() {
     var appState = context.watch<ReaderViewModel>();
+     var markerVm = context.read<MarkerVewModel>();
     final controller = appState.pdfViewerController;
 
     if (kDebugMode) {
@@ -146,6 +157,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // 大纲列表
     Widget buildOutlineList(List<PdfOutlineNode> nodes, {double indent = 0}) {
       var appState = context.watch<ReaderViewModel>();
+       var markerVm = context.read<MarkerVewModel>();
 
       return Column(
         mainAxisSize: MainAxisSize.min,
@@ -295,12 +307,10 @@ class _MyHomePageState extends State<MyHomePage> {
           //
 
           params: PdfViewerParams(
-            onViewerReady: (pdfDocument, pdfViewerController) {
-              // appState.pdfDocument = pdfDocument;
-              // appState.pdfViewerController = pdfViewerController;
+            onViewerReady: (pdfDocument, pdfViewerController) async {
 
               // 加载保存的高亮
-              appState.markerVm.loadHighlights(widget.selectedFilePath);
+              await markerVm.loadArchive(widget.selectedFilePath);
 
               const margin = 50.0;
               final zoom = (pdfViewerController.viewSize.width - margin * 2) /
@@ -322,7 +332,7 @@ class _MyHomePageState extends State<MyHomePage> {
             selectableRegionInjector: (context, child) {
               // Your customized SelectionArea
               return SelectionArea(
-                selectionControls: CustomTextSelectionControls(appState),
+                selectionControls: CustomTextSelectionControls(markerVm),
                 contextMenuBuilder: (context, selectableRegionState) =>
                     const SizedBox.shrink(),
                 focusNode: FocusNode(),
@@ -344,19 +354,19 @@ class _MyHomePageState extends State<MyHomePage> {
                 //         onPressed: () {
                 //           // selectableRegionState
                 //           //     .selectAll(SelectionChangedCause.toolbar);
-                //           appState.markerVm.applyMark();
+                //           markerVm.applyMark();
                 //         }),
                 //     ContextMenuButtonItem(
                 //         label: '下划线',
                 //         onPressed: () {
-                //           appState.markerVm.applyMarkU();
+                //           markerVm.applyMarkU();
                 //           // selectableRegionState
                 //           //     .copySelection(SelectionChangedCause.toolbar);
                 //         }),
                 //     ContextMenuButtonItem(
                 //         label: '删除线',
                 //         onPressed: () {
-                //           appState.markerVm.applyMarkS();
+                //           markerVm.applyMarkS();
                 //           // selectableRegionState
                 //           //     .copySelection(SelectionChangedCause.toolbar);
                 //         }),
@@ -369,19 +379,16 @@ class _MyHomePageState extends State<MyHomePage> {
               );
             },
             enableTextSelection: true,
-            // selectionColor: appState.markerVm.selectionColor,
+            // selectionColor: markerVm.selectionColor,
             onTextSelectionChange: (selections) {
               // 只在高亮工具激活时才处理文本选择
-              // if (appState.topbarVm.isHandSelected == false) {
-              appState.markerVm.selectedRanges = selections;
-              // appState.markerVm.applyMark(selections);
-              // }
+              markerVm.selectedRanges = selections;
             },
             pagePaintCallbacks: [
               appState.textSearcher.pageTextMatchPaintCallback,
-              appState.markerVm.paintMarkers,
-              // appState.markerVm.paintUnderlines,
-              // appState.markerVm.paintSavedHighlights, // 恢复保存的高亮绘制回调
+              markerVm.paintMarkers,
+              // markerVm.paintUnderlines,
+              // markerVm.paintSavedHighlights, // 恢复保存的高亮绘制回调
             ],
             viewerOverlayBuilder:
                 (BuildContext context, Size size, linkHandler) {
@@ -401,8 +408,12 @@ class _MyHomePageState extends State<MyHomePage> {
                   pageRect: pageRect,
                   page: page,
                   markers:
-                      appState.markerVm.applyStrokes[page.pageNumber] ?? [],
-                  markerVm: appState.markerVm,
+                      markerVm.markers[page.pageNumber] ?? [],
+                  markerVm: markerVm,
+                ),
+                DrawingOverlay(
+                  pageRect: pageRect,
+                  page: page,
                 ),
               ];
             },

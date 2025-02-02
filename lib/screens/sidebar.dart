@@ -888,7 +888,7 @@ class _TranslationPanelState extends State<TranslationPanel> {
               // setState(() {
               //   translatedText = "这里是翻译结果"; // 临时示例
               // });
-              appState.dictVm.query(_controller.text);
+              // appState.dictVm.query(_controller.text);
             },
           ),
           // 翻译结果部分

@@ -1,3 +1,4 @@
+import 'package:flowverse/models/stroke.dart';
 import 'package:flowverse/view_models/reader_vm.dart';
 import 'package:flutter/material.dart';
 import 'package:pdfrx/pdfrx.dart';
@@ -115,7 +116,7 @@ class MarkerOverlayBuilder extends StatelessWidget {
             // 强制重建
             if (context.mounted) {
               Future.microtask(() {
-                markerVm.readerVm.notifyListeners();
+                markerVm.notifyListeners();
               });
             }
           },

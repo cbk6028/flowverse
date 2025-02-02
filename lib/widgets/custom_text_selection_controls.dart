@@ -1,3 +1,5 @@
+import 'package:flowverse/models/stroke.dart';
+import 'package:flowverse/view_models/marker_vm.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
@@ -5,45 +7,14 @@ import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../view_models/reader_vm.dart';
 
+
 class CustomTextSelectionControls extends DesktopTextSelectionControls {
   static const double _kToolbarContentDistance = 8.0;
   static const double _kToolbarContentDistanceBelow = 20.0;
 
-  final ReaderViewModel readerVm;
+  final MarkerVewModel markerVm;
 
-  CustomTextSelectionControls(this.readerVm);
-
-  // @override
-  // bool handleTap() {
-  //   return false;
-  // }
-
-  // @override
-  // bool handleTapDown(TapDownDetails details) {
-  //   return false;
-  // }
-
-  // @override
-  // bool handleSelectWord(SelectWordSelectionIntent intent) {
-  //   return false;
-  // }
-
-  // @override
-  // bool handleSelectionDragStart(DragStartDetails details) {
-  //   return false;
-  // }
-
-  // @override
-  // bool handleSelectionEnd(SelectionEndCause cause) {
-  //   // 选择结束时立即显示工具栏
-  //   WidgetsBinding.instance.addPostFrameCallback((_) {
-  //     final selection = readerVm.textEditingController.selection;
-  //     if (selection != null && !selection.isCollapsed) {
-  //       readerVm.showToolbar();
-  //     }
-  //   });
-  //   return false;
-  // }
+  CustomTextSelectionControls(this.markerVm);
 
   @override
   Widget buildToolbar(
@@ -88,7 +59,7 @@ class CustomTextSelectionControls extends DesktopTextSelectionControls {
         TextSelectionToolbarTextButton(
           padding: const EdgeInsets.symmetric(horizontal: 8.0),
           onPressed: () {
-            readerVm.markerVm.applyMark();
+            markerVm.applyMark(MarkerType.highlight);
             delegate.hideToolbar();
           },
           child: Row(
@@ -103,7 +74,7 @@ class CustomTextSelectionControls extends DesktopTextSelectionControls {
         TextSelectionToolbarTextButton(
           padding: const EdgeInsets.symmetric(horizontal: 8.0),
           onPressed: () {
-            readerVm.markerVm.applyMarkU();
+            markerVm.applyMark(MarkerType.underline);
             delegate.hideToolbar();
           },
           child: Row(
@@ -118,7 +89,7 @@ class CustomTextSelectionControls extends DesktopTextSelectionControls {
         TextSelectionToolbarTextButton(
           padding: const EdgeInsets.symmetric(horizontal: 8.0),
           onPressed: () {
-            readerVm.markerVm.applyMarkS();
+            markerVm.applyMark(MarkerType.strikethrough);
             delegate.hideToolbar();
           },
           child: Row(

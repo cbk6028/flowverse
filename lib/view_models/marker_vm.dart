@@ -1,146 +1,39 @@
 import 'dart:math';
+import 'package:flowverse/models/archive.dart';
+import 'package:flowverse/models/draw_action.dart';
+import 'package:flowverse/models/stroke.dart';
+import 'package:flowverse/type.dart';
 import 'package:flutter/material.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'dart:convert';
 import 'dart:io';
 
-typedef PageNumber = int;
-
-// 定义操作类型
-enum MarkerOperation { add, remove }
-
-// 定义操作记录类
-class MarkerAction {
-  final Marker marker;
-  final MarkerOperation operation;
-  final int pageNumber;
-
-  MarkerAction(this.marker, this.operation, this.pageNumber);
-}
-
-enum MarkerType { highlight, underline, strikethrough }
-
-class Archive {
-  final int version = 0;
-
-  Map<PageNumber, List<Marker>> markers = {};
-  final DateTime dateCreated;
-  final DateTime? dateModified;
-
-  Archive({required this.dateCreated, this.dateModified});
-
-  Map<String, dynamic> toJson() {
-    return {
-      'version': version,
-      'dateCreated': dateCreated.toIso8601String(),
-      'dateModified': dateModified?.toIso8601String(),
-      'markers': markers.map((pageNumber, markers) => MapEntry(
-          pageNumber.toString(), markers.map((m) => m.toJson()).toList())),
-    };
-  }
-
-  factory Archive.fromJson(Map<String, dynamic> json) {
-    var archive = Archive(
-      dateCreated: DateTime.parse(json['dateCreated']),
-      dateModified: json['dateModified'] != null
-          ? DateTime.parse(json['dateModified'])
-          : null,
-    );
-
-    var markersJson = json['markers'] as Map<String, dynamic>;
-    markersJson.forEach((pageStr, markersJson) {
-      var pageNumber = int.parse(pageStr);
-      var markers = (markersJson as List)
-          .map((m) => Marker.fromJson(m as Map<String, dynamic>))
-          .toList();
-      archive.markers[pageNumber] = markers;
-    });
-
-    return archive;
-  }
-}
-
-class Marker {
-  final DateTime timestamp;
-  final Paint paint;
-  final PageNumber pageNumber;
-  // final Color color;
-  // final double strokeWidth;
-  final List<Point> points = []; // 改为可变列表
-  final MarkerType type;
-  // final double opacity;
-  final PdfTextRanges? ranges;
-  // bool isDrawn;
-
-  Marker(
-    this.timestamp,
-    this.paint,
-    List<Point> initialPoints, // 改为初始点列表
-    this.pageNumber, {
-    // this.strokeWidth = 0.8,
-    this.type = MarkerType.highlight,
-    // this.opacity = 1.0,
-    this.ranges,
-    // this.isDrawn = false,
-  }) {
-    points.addAll(initialPoints); // 添加初始点
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      // 'color': qcolor.value,
-      'timestamp': timestamp.toString(),
-      'paint': paint.toJson(),
-      'points': points.map((p) => [p.x, p.y]).toList(),
-      // 'strokeWidth': paint.strokeWidth,
-      'pageNumber': pageNumber,
-      'type': type.name, // 只保存枚举名称
-    };
-  }
-
-  factory Marker.fromJson(Map<String, dynamic> json) {
-    return Marker(
-        DateTime.parse(json['timestamp']),
-        PaintJson.fromJson(json['paint']),
-        (json['points'] as List).map((p) => Point<num>(p[0], p[1])).toList(),
-        // strokeWidth: json['strokeWidth'],
-        json['pageNumber'],
-        type: MarkerType.values.byName(json['type'].split('.').last), // 提取枚举名称
-        ranges: null);
-  }
-}
-
-extension PaintJson on Paint {
-  Map<String, dynamic> toJson() => {
-        'color': color.value,
-        'style': style.toString(),
-        'strokeWidth': strokeWidth,
-        'alpha': color.alpha,
-      };
-
-  static Paint fromJson(Map<String, dynamic> json) => Paint()
-    ..color = Color(json['color']).withAlpha(json['alpha'])
-    ..style =
-        PaintingStyle.values.firstWhere((e) => e.toString() == json['style'])
-    ..strokeWidth = json['strokeWidth'];
-}
+import 'package:simple_painter/simple_painter.dart';
 
 class MarkerVewModel extends ChangeNotifier {
-  final readerVm;
+  // final readerVm;
 
-  MarkerVewModel(this.readerVm);
+  MarkerVewModel();
 
-  // final Map<PageNumber, List<Marker>> _highlightMarkers = {};
-  // final Map<PageNumber, List<Marker>> _underlineMarkers = {};
+  PainterController? painterController = PainterController();
 
-  final Map<PageNumber, List<Marker>> _strokes = {};
-  Map<PageNumber, List<Marker>> applyStrokes = {};
+  Map<PageNumber, List<Stroke>> strokes = {};
+  Map<PageNumber, List<Marker>> markers = {};
   List<PdfTextRanges> selectedRanges = [];
 
-  var selectionColor = Colors.yellow;
-
+  // var selectionColor = Colors.yellow;
   var underlineColor = Colors.blue;
   var highlightColor = Colors.yellow;
+  // var strikethroughColor = Colors.red;
+
+  MaterialColor _strikethroughColor = Colors.red;
+
+  MaterialColor get strikethroughColor => _strikethroughColor;
+
+  set strikethroughColor(MaterialColor color) {
+    _strikethroughColor = color;
+    notifyListeners();
+  }
 
   // 添加新的状态标志
   bool isHighlightMode = false;
@@ -148,204 +41,86 @@ class MarkerVewModel extends ChangeNotifier {
   var currentMarkerType = MarkerType.highlight;
 
   // 撤销和重做栈
-  final List<MarkerAction> _undoStack = [];
-  final List<MarkerAction> _redoStack = [];
+  final List<DrawAction> _undoStack = [];
+  final List<DrawAction> _redoStack = [];
 
-  var strikethroughColor = Colors.red;
+  // 检查是否可以撤销
+  bool get canUndo => _undoStack.isNotEmpty;
 
-  // 修改 selectedRanges 的 setter
-  // set selectedRanges(List<PdfTextRanges> ranges) {
+  // 检查是否可以重做
+  bool get canRedo => _redoStack.isNotEmpty;
 
-  // }
-
-  void applyMarkS() {
-    var ranges = selectedRanges;
-
-    if (ranges.isEmpty) {
-      return;
+  void addStroke(Stroke stroke, int pageNumber) {
+    if (!strokes.containsKey(pageNumber)) {
+      strokes[pageNumber] = [];
     }
+    strokes[pageNumber]!.add(stroke);
 
-    for (var range in ranges) {
-      Paint paint = Paint()
-        ..color = strikethroughColor
-        ..strokeWidth = 0.8
-        ..style = PaintingStyle.fill;
-
-      Marker marker = Marker(
-        DateTime.now(),
-        paint,
-        [],
-        range.pageText.pageNumber,
-        type: MarkerType.strikethrough,
-        ranges: range,
-      );
-      addMarker(marker);
-    }
-
-    readerVm.notifyListeners();
-  }
-
-  void applyMark() {
-    // applyStrokes = Map.from(_strokes);
-    // _selectedRanges = ranges;
-    var ranges = selectedRanges;
-
-    if (ranges.isEmpty) {
-      return;
-    }
-    currentMarkerType = MarkerType.highlight;
-    //
-    // 实时应用效果
-    switch (currentMarkerType) {
-      case MarkerType.highlight:
-        for (var range in ranges) {
-          //  print('range.pageText.pageNumber: ${range.pageText.pageNumber}');
-          Paint paint = Paint()
-            ..color = highlightColor.withAlpha(100)
-            ..style = PaintingStyle.fill;
-
-          Marker marker = Marker(
-            DateTime.now(),
-            // highlightColor,
-            paint,
-            [],
-            range.pageText.pageNumber,
-            // strokeWidth: 0.8,
-            type: MarkerType.highlight,
-            // opacity: 1.0,
-            ranges: range,
-            // isDrawn: false,
-          );
-          addMarker(marker);
-        }
-        break;
-      case MarkerType.underline:
-        for (var range in ranges) {
-          Paint paint = Paint()
-            ..color = underlineColor
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 0.8;
-
-          Marker marker = Marker(
-            DateTime.now(),
-            // underlineColor,
-            paint,
-            [],
-            range.pageText.pageNumber,
-            // strokeWidth: 0.8,
-            type: MarkerType.underline,
-            // opacity: 1.0,
-            ranges: range,
-            // isDrawn: false,
-          );
-          // addMarker(marker);
-        }
-        break;
-      default:
-        break;
-    }
-
-    // applyStrokes = Map.from(_strokes);
-
-    // notifysListeners();
-    readerVm.notifyListeners();
-  }
-
-  void applyMarkU() {
-    // applyStrokes = Map.from(_strokes);
-    // _selectedRanges = ranges;
-    var ranges = selectedRanges;
-
-    if (ranges.isEmpty) {
-      return;
-    }
-    currentMarkerType = MarkerType.underline;
-    // 实时应用效果
-    switch (currentMarkerType) {
-      case MarkerType.highlight:
-        for (var range in ranges) {
-          Paint paint = Paint()
-            ..color = highlightColor.withAlpha(100)
-            ..style = PaintingStyle.fill;
-
-          Marker marker = Marker(
-            DateTime.now(),
-            // highlightColor,
-            paint,
-            [],
-            range.pageText.pageNumber,
-            // strokeWidth: 0.8,
-            type: MarkerType.highlight,
-            // opacity: 1.0,
-            ranges: range,
-            // isDrawn: false,
-          );
-          addMarker(marker);
-        }
-        break;
-      case MarkerType.underline:
-        for (var range in ranges) {
-          Paint paint = Paint()
-            ..color = underlineColor
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 0.8;
-
-          Marker marker = Marker(
-            DateTime.now(),
-            // underlineColor,
-            paint,
-            [],
-            range.pageText.pageNumber,
-            // strokeWidth: 0.8,
-            type: MarkerType.underline,
-            // opacity: 1.0,
-            ranges: range,
-            // isDrawn: false,
-          );
-          addMarker(marker);
-        }
-        break;
-      default:
-        break;
-    }
-
-    // applyStrokes = Map.from(_strokes);
-
-    // notifysListeners();
-    readerVm.notifyListeners();
-  }
-
-  // List<PdfTextRanges> get selectedRanges => _selectedRanges;
-  // List<PdfTextRanges> _selectedRanges = [];
-
-  // 新增：添加标记
-  void addMarker(Marker marker) {
-    if (!applyStrokes.containsKey(marker.pageNumber)) {
-      applyStrokes[marker.pageNumber] = [];
-    }
-    applyStrokes[marker.pageNumber]!.add(marker);
-    
     // 记录添加操作
-    _undoStack.add(MarkerAction(marker, MarkerOperation.add, marker.pageNumber));
-    _redoStack.clear(); // 清空重做栈
-    
-  
-    readerVm.notifyListeners();
+    _undoStack.add(DrawAction(
+      actionType: DrawActionType.addStroke,
+      pageNumber: pageNumber,
+      stroke: stroke,
+    ));
+    _redoStack.clear();
+
+    notifyListeners();
+  }
+
+  void removeStroke(int pageNumber, Stroke stroke) {
+    if (strokes[pageNumber]?.contains(stroke) ?? false) {
+      strokes[pageNumber]?.remove(stroke);
+
+      // 记录删除操作
+      _undoStack.add(DrawAction(
+        actionType: DrawActionType.removeStroke,
+        pageNumber: pageNumber,
+        stroke: stroke,
+      ));
+      _redoStack.clear();
+
+      // 如果页面的笔画列表为空，删除该页面的记录
+      if (strokes[pageNumber]?.isEmpty ?? false) {
+        strokes.remove(pageNumber);
+      }
+
+      notifyListeners();
+    }
+  }
+
+  void addMarker(Marker marker) {
+    if (!markers.containsKey(marker.pageNumber)) {
+      markers[marker.pageNumber] = [];
+    }
+    markers[marker.pageNumber]!.add(marker);
+    _undoStack.add(DrawAction(
+      actionType: DrawActionType.addMarker,
+      pageNumber: marker.pageNumber,
+      marker: marker,
+    ));
+    _redoStack.clear();
+    notifyListeners();
   }
 
   void removeMarker(int pageNumber, Marker marker) {
-    applyStrokes[pageNumber]?.remove(marker);
-    
-    // 记录删除操作
-    _undoStack.add(MarkerAction(marker, MarkerOperation.remove, pageNumber));
-    _redoStack.clear();
+    if (markers[pageNumber]?.contains(marker) ?? false) {
+      markers[pageNumber]?.remove(marker);
 
-    // 如果页面的标注列表为空，删除该页面的记录
-    if (applyStrokes[pageNumber]?.isEmpty ?? false) {
-      applyStrokes.remove(pageNumber);
+      // 记录删除操作
+      _undoStack.add(DrawAction(
+        actionType: DrawActionType.removeMarker,
+        pageNumber: pageNumber,
+        marker: marker,
+      ));
+      _redoStack.clear();
+
+      // 如果页面的标注列表为空，删除该页面的记录
+      if (markers[pageNumber]?.isEmpty ?? false) {
+        markers.remove(pageNumber);
+      }
+
+      notifyListeners();
     }
-
-    readerVm.notifyListeners();
   }
 
   void undo() {
@@ -354,24 +129,46 @@ class MarkerVewModel extends ChangeNotifier {
     final action = _undoStack.removeLast();
     _redoStack.add(action);
 
-    switch (action.operation) {
-      case MarkerOperation.add:
-        // 撤销添加操作 -> 执行删除
-        applyStrokes[action.pageNumber]?.remove(action.marker);
-        if (applyStrokes[action.pageNumber]?.isEmpty ?? false) {
-          applyStrokes.remove(action.pageNumber);
+    switch (action.actionType) {
+      case DrawActionType.addStroke:
+        // 撤销添加操作，需要删除笔画
+        if (action.stroke != null) {
+          strokes[action.pageNumber]?.remove(action.stroke);
+          if (strokes[action.pageNumber]?.isEmpty ?? false) {
+            strokes.remove(action.pageNumber);
+          }
         }
         break;
-      case MarkerOperation.remove:
-        // 撤销删除操作 -> 执行添加
-        if (!applyStrokes.containsKey(action.pageNumber)) {
-          applyStrokes[action.pageNumber] = [];
+      case DrawActionType.removeStroke:
+        // 撤销删除操作，需要添加笔画
+        if (action.stroke != null) {
+          if (!strokes.containsKey(action.pageNumber)) {
+            strokes[action.pageNumber] = [];
+          }
+          strokes[action.pageNumber]!.add(action.stroke!);
         }
-        applyStrokes[action.pageNumber]!.add(action.marker);
+        break;
+      case DrawActionType.addMarker:
+        // 撤销添加标记操作，需要删除标记
+        if (action.marker != null) {
+          markers[action.pageNumber]?.remove(action.marker);
+          if (markers[action.pageNumber]?.isEmpty ?? false) {
+            markers.remove(action.pageNumber);
+          }
+        }
+        break;
+      case DrawActionType.removeMarker:
+        // 撤销删除标记操作，需要添加标记
+        if (action.marker != null) {
+          if (!markers.containsKey(action.pageNumber)) {
+            markers[action.pageNumber] = [];
+          }
+          markers[action.pageNumber]!.add(action.marker!);
+        }
         break;
     }
 
-    readerVm.notifyListeners();
+    notifyListeners();
   }
 
   void redo() {
@@ -380,192 +177,239 @@ class MarkerVewModel extends ChangeNotifier {
     final action = _redoStack.removeLast();
     _undoStack.add(action);
 
-    switch (action.operation) {
-      case MarkerOperation.add:
-        // 重做添加操作 -> 执行添加
-        if (!applyStrokes.containsKey(action.pageNumber)) {
-          applyStrokes[action.pageNumber] = [];
+    switch (action.actionType) {
+      case DrawActionType.addStroke:
+        // 重做添加操作，需要添加笔画
+        if (action.stroke != null) {
+          if (!strokes.containsKey(action.pageNumber)) {
+            strokes[action.pageNumber] = [];
+          }
+          strokes[action.pageNumber]!.add(action.stroke!);
         }
-        applyStrokes[action.pageNumber]!.add(action.marker);
         break;
-      case MarkerOperation.remove:
-        // 重做删除操作 -> 执行删除
-        applyStrokes[action.pageNumber]?.remove(action.marker);
-        if (applyStrokes[action.pageNumber]?.isEmpty ?? false) {
-          applyStrokes.remove(action.pageNumber);
+      case DrawActionType.removeStroke:
+        // 重做删除操作，需要删除笔画
+        if (action.stroke != null) {
+          strokes[action.pageNumber]?.remove(action.stroke);
+          if (strokes[action.pageNumber]?.isEmpty ?? false) {
+            strokes.remove(action.pageNumber);
+          }
+        }
+        break;
+      case DrawActionType.addMarker:
+        // 重做添加标记操作，需要添加标记
+        if (action.marker != null) {
+          if (!markers.containsKey(action.pageNumber)) {
+            markers[action.pageNumber] = [];
+          }
+          markers[action.pageNumber]!.add(action.marker!);
+        }
+        break;
+      case DrawActionType.removeMarker:
+        // 重做删除标记操作，需要删除标记
+        if (action.marker != null) {
+          markers[action.pageNumber]?.remove(action.marker);
+          if (markers[action.pageNumber]?.isEmpty ?? false) {
+            markers.remove(action.pageNumber);
+          }
         }
         break;
     }
 
-    readerVm.notifyListeners();
+    notifyListeners();
+  }
+
+  void applyMark(currentMarkerType) {
+    var ranges = selectedRanges;
+
+    if (ranges.isEmpty) {
+      return;
+    }
+    // currentMarkerType = MarkerType.highlight;
+    //
+    // 实时应用效果
+    switch (currentMarkerType) {
+      case MarkerType.highlight:
+        for (var range in ranges) {
+          Paint paint = Paint()
+            ..color = highlightColor.withAlpha(100)
+            ..style = PaintingStyle.fill;
+
+          Marker marker = Marker(
+            DateTime.now(),
+            // highlightColor,
+            paint,
+            [],
+            range.pageText.pageNumber,
+            // strokeWidth: 0.8,
+            type: MarkerType.highlight,
+            // opacity: 1.0,
+            ranges: range,
+            // isDrawn: false,
+          );
+          addMarker(marker);
+        }
+        break;
+      case MarkerType.underline:
+        for (var range in ranges) {
+          Paint paint = Paint()
+            ..color = underlineColor
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 0.8;
+
+          Marker marker = Marker(
+            DateTime.now(),
+            // underlineColor,
+            paint,
+            [],
+            range.pageText.pageNumber,
+            // strokeWidth: 0.8,
+            type: MarkerType.underline,
+            // opacity: 1.0,
+            ranges: range,
+            // isDrawn: false,
+          );
+          addMarker(marker);
+        }
+        break;
+      case MarkerType.strikethrough:
+        for (var range in ranges) {
+          Paint paint = Paint()
+            ..color = strikethroughColor
+            ..strokeWidth = 0.8
+            ..style = PaintingStyle.fill;
+
+          Marker marker = Marker(
+            DateTime.now(),
+            paint,
+            [],
+            range.pageText.pageNumber,
+            type: MarkerType.strikethrough,
+            ranges: range,
+          );
+          addMarker(marker);
+        }
+        break;
+    }
+
+    notifyListeners();
+    // readerVm.notifyListeners();
   }
 
   // 获取指定页面的所有标注
   List<Marker>? getMarkersForPage(int pageNumber) {
-    return applyStrokes[pageNumber];
+    return markers[pageNumber];
   }
 
-  // 保存高亮到文件
-  Future<void> saveHighlights(String pdfPath) async {
-    final savePath = '${pdfPath}_highlights.json';
+  // 保存归档到文件
+  Future<void> saveArchive(String pdfPath) async {
+    final savePath = '${pdfPath}_archive.json';
     final archive = Archive(
       dateCreated: DateTime.now(),
       dateModified: DateTime.now(),
     );
-    archive.markers = Map.from(applyStrokes);
+    archive.markers = Map.from(markers);
+    archive.strokes = Map.from(strokes);
 
     final archiveJson = jsonEncode(archive.toJson());
     await File(savePath).writeAsString(archiveJson);
   }
 
-  // 从文件加载高亮
-  Future<void> loadHighlights(String pdfPath) async {
-    final savePath = '${pdfPath}_highlights.json';
+  Future<void> loadArchive(String pdfPath) async {
+    final savePath = '${pdfPath}_archive.json';
     if (await File(savePath).exists()) {
       final content = await File(savePath).readAsString();
       final json = jsonDecode(content) as Map<String, dynamic>;
       final archive = Archive.fromJson(json);
 
-      applyStrokes = Map.from(archive.markers);
+      markers = Map.from(archive.markers);
+      strokes = Map.from(archive.strokes);
 
-      readerVm.notifyListeners();
+      notifyListeners();
+      // readerVm.notifyListeners();
     }
   }
 
   void paintMarkers(Canvas canvas, Rect pageRect, PdfPage page) {
-    final markers = applyStrokes[page.pageNumber];
-    if (markers == null) return;
+    final lmarkers = markers[page.pageNumber];
+    if (lmarkers == null) return;
 
-    for (final marker in markers) {
+    for (final marker in lmarkers) {
       // 过滤保存的
       if (marker.ranges == null) {
+        print('DEBUG: Processing marker with ${marker.points.length} points');
         final paint = marker.paint;
+        final rect = PdfRect(
+                marker.points[0].x as double,
+                marker.points[0].y as double,
+                marker.points[1].x as double,
+                marker.points[1].y as double)
+            .toRectInPageRect(page: page, pageRect: pageRect);
         switch (marker.type) {
           case MarkerType.highlight:
-            canvas.drawRect(
-                PdfRect(
-                        marker.points[0].x as double,
-                        marker.points[0].y as double,
-                        marker.points[1].x as double,
-                        marker.points[1].y as double)
-                    .toRectInPageRect(page: page, pageRect: pageRect),
-                paint);
+            canvas.drawRect(rect, paint);
             break;
           case MarkerType.underline:
-            Rect rect = PdfRect(
-                    marker.points[0].x as double,
-                    marker.points[0].y as double,
-                    marker.points[1].x as double,
-                    marker.points[1].y as double)
-                .toRectInPageRect(page: page, pageRect: pageRect);
             canvas.drawLine(Offset(rect.left, rect.bottom),
                 Offset(rect.right, rect.bottom), paint);
             break;
-
           case MarkerType.strikethrough:
-            Rect rect = PdfRect(
-                    marker.points[0].x as double,
-                    marker.points[0].y as double,
-                    marker.points[1].x as double,
-                    marker.points[1].y as double)
-                .toRectInPageRect(page: page, pageRect: pageRect);
-
             canvas.drawLine(Offset(rect.left, (rect.bottom + rect.top) / 2),
                 Offset(rect.right, (rect.bottom + rect.top) / 2), paint);
             break;
         }
-        continue;
-      }
+      } else {
+        print(
+            'DEBUG: Processing marker with ${marker.ranges!.ranges.length} ranges');
+        for (final range in marker.ranges!.ranges) {
+          print('DEBUG: Range start=${range.start}, end=${range.end}');
+          // 添加范围验证
+          // if (range.start >= range.end || range.start < 0) {
+          //   print('DEBUG: Invalid range detected: start=${range.start}, end=${range.end}');
+          //   continue;
+          // }
 
-      switch (marker.type) {
-        case MarkerType.highlight:
-          for (final range in marker.ranges!.ranges) {
-            final f = PdfTextRangeWithFragments.fromTextRange(
-              marker.ranges!.pageText,
-              range.start,
-              range.end,
-            );
+          final f = PdfTextRangeWithFragments.fromTextRange(
+            marker.ranges!.pageText,
+            range.start,
+            range.end,
+          );
+          if (f != null) {
+            final rect =
+                f.bounds.toRectInPageRect(page: page, pageRect: pageRect);
 
-            if (f != null) {
-              final bounds =
-                  f.bounds.toRectInPageRect(page: page, pageRect: pageRect);
-              // debugPrint('range ${range}');
-              // debugPrint('bounds ${bounds}');
-              // debugPrint('$pageRect');
-              canvas.drawRect(bounds, marker.paint);
-              // 保存矩形的四个点
-              if (!marker.points.isEmpty) {
+            switch (marker.type) {
+              case MarkerType.highlight:
+                canvas.drawRect(rect, marker.paint);
                 break;
-              }
-              marker.points.addAll([
-                // Point(bounds.left, bounds.top),
-                // Point(bounds.right, bounds.bottom),
-                Point(f.bounds.left, f.bounds.top),
-                Point(f.bounds.right, f.bounds.bottom),
-              ]);
-            }
-          }
-          break;
 
-        case MarkerType.underline:
-          for (final range in marker.ranges!.ranges) {
-            final f = PdfTextRangeWithFragments.fromTextRange(
-              marker.ranges!.pageText,
-              range.start,
-              range.end,
-            );
-            if (f != null) {
-              final rect =
-                  f.bounds.toRectInPageRect(page: page, pageRect: pageRect);
-              canvas.drawLine(
-                rect.bottomLeft,
-                rect.bottomRight,
-                marker.paint,
-              );
-              // 防止大量重复添加
-              if (!marker.points.isEmpty) {
+              case MarkerType.underline:
+                canvas.drawLine(
+                  rect.bottomLeft,
+                  rect.bottomRight,
+                  marker.paint,
+                );
                 break;
-              }
-              // 保存下划线的起点和终点
-              marker.points.addAll([
-                // Point(rect.bottomLeft.dx, rect.bottomLeft.dy),
-                // Point(rect.bottomRight.dx, rect.bottomRight.dy),
-                Point(f.bounds.left, f.bounds.top),
-                Point(f.bounds.right, f.bounds.bottom),
-              ]);
-            }
-          }
-          break;
 
-        case MarkerType.strikethrough:
-          for (final range in marker.ranges!.ranges) {
-            final f = PdfTextRangeWithFragments.fromTextRange(
-              marker.ranges!.pageText,
-              range.start,
-              range.end,
-            );
-            if (f != null) {
-              final rect =
-                  f.bounds.toRectInPageRect(page: page, pageRect: pageRect);
-              canvas.drawLine(
-                rect.bottomLeft - Offset(0, rect.height / 2),
-                rect.bottomRight - Offset(0, rect.height / 2),
-                marker.paint,
-              );
-              // 防止大量重复添加
-              if (!marker.points.isEmpty) {
+              case MarkerType.strikethrough:
+                canvas.drawLine(
+                  rect.bottomLeft - Offset(0, rect.height / 2),
+                  rect.bottomRight - Offset(0, rect.height / 2),
+                  marker.paint,
+                );
                 break;
-              }
-
-              marker.points.addAll([
-                // Point(rect.left, rect.top),
-                // Point(rect.right, rect.bottom),
-                Point(f.bounds.left, f.bounds.top),
-                Point(f.bounds.right, f.bounds.bottom),
-              ]);
             }
+            // 保存矩形的四个点
+            if (!marker.points.isEmpty) {
+              break;
+            }
+
+            marker.points.addAll([
+              Point(f.bounds.left, f.bounds.top),
+              Point(f.bounds.right, f.bounds.bottom),
+            ]);
           }
-          break;
+        }
       }
     }
   }

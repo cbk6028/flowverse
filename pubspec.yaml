@@ -51,6 +51,9 @@ dependencies:
   phosphor_flutter: ^2.1.0
   # drift: ^2.22.1
   # printing: ^5.12.0
+  simple_painter:
+    path: ../simple_painter
+  universal_io: ^2.2.2
 
 dev_dependencies:
   flutter_test:
