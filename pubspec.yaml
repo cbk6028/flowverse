@@ -54,6 +54,8 @@ dependencies:
   simple_painter:
     path: ../simple_painter
   universal_io: ^2.2.2
+  image_picker: ^1.1.2
+  dotted_border: ^2.1.0
 
 dev_dependencies:
   flutter_test:

@@ -5,15 +5,16 @@ import 'package:flowverse/models/stroke.dart';
 import 'package:flowverse/type.dart';
 import 'package:flutter/material.dart';
 import 'package:pdfrx/pdfrx.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:simple_painter/simple_painter.dart';
 
-class MarkerVewModel extends ChangeNotifier {
+class MarkerViewModel extends ChangeNotifier {
   // final readerVm;
 
-  MarkerVewModel();
+  MarkerViewModel();
 
   PainterController? painterController = PainterController();
 
@@ -21,17 +22,143 @@ class MarkerVewModel extends ChangeNotifier {
   Map<PageNumber, List<Marker>> markers = {};
   List<PdfTextRanges> selectedRanges = [];
 
-  // var selectionColor = Colors.yellow;
-  var underlineColor = Colors.blue;
-  var highlightColor = Colors.yellow;
-  // var strikethroughColor = Colors.red;
+  Color _underlineColor = Colors.blue;
+  Color _highlightColor = Colors.yellow;
+  Color _strikethroughColor = Colors.red;
 
-  MaterialColor _strikethroughColor = Colors.red;
+  Color get strikethroughColor => _strikethroughColor;
+  Color get underlineColor => _underlineColor;
+  Color get highlightColor => _highlightColor;
 
-  MaterialColor get strikethroughColor => _strikethroughColor;
+  // 添加下划线样式属性
+  UnderlineStyle _underlineStyle = UnderlineStyle.solid;
+  UnderlineStyle get underlineStyle => _underlineStyle;
 
-  set strikethroughColor(MaterialColor color) {
+  // 添加粗细属性
+  double _underlineWidth = 0.8;
+  double _strikethroughWidth = 0.8;
+  
+  double get underlineWidth => _underlineWidth;
+  double get strikethroughWidth => _strikethroughWidth;
+  
+  double getMarkupWidth(MarkerType type) {
+    switch (type) {
+      case MarkerType.underline:
+        return underlineWidth;
+      case MarkerType.strikethrough:
+        return strikethroughWidth;
+      default:
+        return 0;
+    }
+  }
+
+  // 设置下划线样式的方法
+  void setUnderlineStyle(UnderlineStyle style) {
+    _underlineStyle = style;
+    notifyListeners();
+  }
+
+  // 设置粗细的方法
+  void setUnderlineWidth(double width) {
+    _underlineWidth = width;
+    notifyListeners();
+  }
+  
+  void setStrikethroughWidth(double width) {
+    _strikethroughWidth = width;
+    notifyListeners();
+  }
+
+  // 根据样式获取下划线路径的方法
+  Path getUnderlinePath(Offset start, Offset end, UnderlineMarkerTool tool) {
+    final path = Path();
+
+    switch (tool.style) {
+      case UnderlineStyle.solid:
+        path.moveTo(start.dx, start.dy);
+        path.lineTo(end.dx, end.dy);
+        break;
+
+      case UnderlineStyle.dashed:
+        final dashWidth = 5.0;
+        final dashSpace = 5.0;
+        double distance = (end.dx - start.dx);
+        double drawn = 0;
+
+        while (drawn < distance) {
+          double toDraw = min(dashWidth, distance - drawn);
+          path.moveTo(start.dx + drawn, start.dy);
+          path.lineTo(start.dx + drawn + toDraw, start.dy);
+          drawn += toDraw + dashSpace;
+        }
+        break;
+
+      case UnderlineStyle.dotted:
+        final dotSpace = 4.0;
+        double distance = (end.dx - start.dx);
+        double drawn = 0;
+
+        while (drawn < distance) {
+          path.addOval(Rect.fromCircle(
+            center: Offset(start.dx + drawn, start.dy),
+            radius: 1.0,
+          ));
+          drawn += dotSpace;
+        }
+        break;
+
+      case UnderlineStyle.wavy:
+        final waveWidth = 10.0;
+        final waveHeight = 2.0;
+        double distance = (end.dx - start.dx);
+        path.moveTo(start.dx, start.dy);
+
+        for (double i = 0; i < distance; i += waveWidth) {
+          path.relativeQuadraticBezierTo(
+            waveWidth / 2,
+            -waveHeight,
+            waveWidth,
+            0,
+          );
+          if (i + waveWidth < distance) {
+            path.relativeQuadraticBezierTo(
+              waveWidth / 2,
+              waveHeight,
+              waveWidth,
+              0,
+            );
+          }
+        }
+        break;
+    }
+
+    return path;
+  }
+
+  // 绘制下划线的方法
+  void drawUnderline(
+      Canvas canvas, Offset start, Offset end, Marker marker) {
+    // final paint = Paint()
+    //   ..color = tool.
+    //   ..style = PaintingStyle.stroke
+    //   ..strokeWidth = 2.0;
+    final tool = marker.tool as UnderlineMarkerTool;
+    final path = getUnderlinePath(start, end, tool);
+    canvas.drawPath(path, marker.paint);
+  }
+
+  set strikethroughColor(Color color) {
     _strikethroughColor = color;
+    notifyListeners();
+  }
+
+  set highlightColor(Color color) {
+    _highlightColor = color;
+    notifyListeners();
+  }
+
+  set underlineColor(Color color) {
+    _underlineColor = color;
     notifyListeners();
   }
 
@@ -39,6 +166,9 @@ class MarkerVewModel extends ChangeNotifier {
   bool isHighlightMode = false;
   bool isUnderlineMode = false;
   var currentMarkerType = MarkerType.highlight;
+
+  // 添加波浪线控制变量
+  // bool isWavyUnderline = false;
 
   // 撤销和重做栈
   final List<DrawAction> _undoStack = [];
@@ -232,17 +362,17 @@ class MarkerVewModel extends ChangeNotifier {
       case MarkerType.highlight:
         for (var range in ranges) {
           Paint paint = Paint()
-            ..color = highlightColor.withAlpha(100)
+            ..color = _highlightColor.withAlpha(100)
             ..style = PaintingStyle.fill;
 
           Marker marker = Marker(
             DateTime.now(),
-            // highlightColor,
+            // _highlightColor,
             paint,
             [],
             range.pageText.pageNumber,
             // strokeWidth: 0.8,
-            type: MarkerType.highlight,
+            HighlightMarkerTool(),
             // opacity: 1.0,
             ranges: range,
             // isDrawn: false,
@@ -253,21 +383,17 @@ class MarkerVewModel extends ChangeNotifier {
       case MarkerType.underline:
         for (var range in ranges) {
           Paint paint = Paint()
-            ..color = underlineColor
+            ..color = _underlineColor
             ..style = PaintingStyle.stroke
-            ..strokeWidth = 0.8;
+            ..strokeWidth = _underlineWidth;
 
           Marker marker = Marker(
             DateTime.now(),
-            // underlineColor,
             paint,
             [],
             range.pageText.pageNumber,
-            // strokeWidth: 0.8,
-            type: MarkerType.underline,
-            // opacity: 1.0,
+            UnderlineMarkerTool(style: _underlineStyle),
             ranges: range,
-            // isDrawn: false,
           );
           addMarker(marker);
         }
@@ -276,7 +402,7 @@ class MarkerVewModel extends ChangeNotifier {
         for (var range in ranges) {
           Paint paint = Paint()
             ..color = strikethroughColor
-            ..strokeWidth = 0.8
+            ..strokeWidth = _strikethroughWidth
             ..style = PaintingStyle.fill;
 
           Marker marker = Marker(
@@ -284,7 +410,7 @@ class MarkerVewModel extends ChangeNotifier {
             paint,
             [],
             range.pageText.pageNumber,
-            type: MarkerType.strikethrough,
+            StrikethroughMarkerTool(),
             ranges: range,
           );
           addMarker(marker);
@@ -337,7 +463,7 @@ class MarkerVewModel extends ChangeNotifier {
     for (final marker in lmarkers) {
       // 过滤保存的
       if (marker.ranges == null) {
-        print('DEBUG: Processing marker with ${marker.points.length} points');
+        print('${DateTime.now()} DEBUG: Processing marker with ${marker.points.length} points');
         final paint = marker.paint;
         final rect = PdfRect(
                 marker.points[0].x as double,
@@ -345,18 +471,27 @@ class MarkerVewModel extends ChangeNotifier {
                 marker.points[1].x as double,
                 marker.points[1].y as double)
             .toRectInPageRect(page: page, pageRect: pageRect);
-        switch (marker.type) {
+        switch (marker.tool.type) {
           case MarkerType.highlight:
             canvas.drawRect(rect, paint);
             break;
           case MarkerType.underline:
-            canvas.drawLine(Offset(rect.left, rect.bottom),
-                Offset(rect.right, rect.bottom), paint);
+            final underlineMarkerTool = marker.tool as UnderlineMarkerTool;
+            drawUnderline(canvas, Offset(rect.left, rect.bottom),
+                Offset(rect.right, rect.bottom), marker);
             break;
           case MarkerType.strikethrough:
             canvas.drawLine(Offset(rect.left, (rect.bottom + rect.top) / 2),
                 Offset(rect.right, (rect.bottom + rect.top) / 2), paint);
             break;
+          // case MarkerType.wavyUnderline:
+          //   _drawWavyLine(
+          //     canvas,
+          //     Offset(rect.left, rect.bottom),
+          //     Offset(rect.right, rect.bottom),
+          //     paint,
+          //   );
+          //   break;
         }
       } else {
         print(
@@ -378,17 +513,15 @@ class MarkerVewModel extends ChangeNotifier {
             final rect =
                 f.bounds.toRectInPageRect(page: page, pageRect: pageRect);
 
-            switch (marker.type) {
+            switch (marker.tool.type) {
               case MarkerType.highlight:
                 canvas.drawRect(rect, marker.paint);
                 break;
 
               case MarkerType.underline:
-                canvas.drawLine(
-                  rect.bottomLeft,
-                  rect.bottomRight,
-                  marker.paint,
-                );
+                final underlineMarkerTool = marker.tool as UnderlineMarkerTool;
+                drawUnderline(canvas, Offset(rect.left, rect.bottom),
+                    Offset(rect.right, rect.bottom), marker);
                 break;
 
               case MarkerType.strikethrough:
@@ -398,6 +531,15 @@ class MarkerVewModel extends ChangeNotifier {
                   marker.paint,
                 );
                 break;
+
+              // case MarkerType.wavyUnderline:
+              //   _drawWavyLine(
+              //     canvas,
+              //     Offset(rect.left, rect.bottom),
+              //     Offset(rect.right, rect.bottom),
+              //     marker.paint,
+              //   );
+              //   break;
             }
             // 保存矩形的四个点
             if (!marker.points.isEmpty) {
@@ -411,6 +553,74 @@ class MarkerVewModel extends ChangeNotifier {
           }
         }
       }
+    }
+  }
+
+  // 添加绘制波浪线的辅助方法
+  void _drawWavyLine(Canvas canvas, Offset start, Offset end, Paint paint) {
+    final path = Path();
+    final width = end.dx - start.dx;
+    const waveHeight = 2.0; // 波浪高度
+    const frequency = 10.0; // 波浪频率
+
+    path.moveTo(start.dx, start.dy);
+
+    for (double i = 0; i <= width; i += 1) {
+      final y = start.dy + sin(i / frequency * pi) * waveHeight;
+      path.lineTo(start.dx + i, y);
+    }
+
+    canvas.drawPath(path, paint);
+  }
+
+  void setMarkupWidth(MarkerType markerType, double value) {
+    switch (markerType) {
+      case MarkerType.highlight:
+        // _highlightWidth = value;
+        break;
+      case MarkerType.underline:
+        _underlineWidth = value;
+        break;
+      case MarkerType.strikethrough:
+        _strikethroughWidth = value;
+        break;
+    }
+  }
+
+  void setMarkupColor(MarkerType markerType, Color color) {
+    switch (markerType) {
+      case MarkerType.highlight:
+        _highlightColor = color;
+        break;
+      case MarkerType.underline:
+        _underlineColor = color;
+        break;
+      case MarkerType.strikethrough:
+        strikethroughColor = color;
+        break;
+    }
+    
+  }
+
+  getMarkupColor(MarkerType markerType) {
+    switch (markerType) {
+      case MarkerType.highlight:
+        return _highlightColor;
+      case MarkerType.underline:
+        return _underlineColor;
+      case MarkerType.strikethrough:
+        return strikethroughColor;
+    }
+  }
+
+  IconData? getMarkupIcon(MarkerType markerType) {
+    switch (markerType) {
+      case MarkerType.highlight:
+        return PhosphorIconsLight.textH;
+      case MarkerType.underline:
+        return PhosphorIconsLight.textUnderline;
+      case MarkerType.strikethrough:
+        return PhosphorIconsLight.textStrikethrough;
     }
   }
 }

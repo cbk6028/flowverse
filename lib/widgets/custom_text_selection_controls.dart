@@ -12,7 +12,7 @@ class CustomTextSelectionControls extends DesktopTextSelectionControls {
   static const double _kToolbarContentDistance = 8.0;
   static const double _kToolbarContentDistanceBelow = 20.0;
 
-  final MarkerVewModel markerVm;
+  final MarkerViewModel markerVm;
 
   CustomTextSelectionControls(this.markerVm);
 

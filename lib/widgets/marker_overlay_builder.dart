@@ -9,7 +9,7 @@ class MarkerOverlayBuilder extends StatelessWidget {
   final Rect pageRect;
   final PdfPage page;
   final List<Marker> markers;
-  final MarkerVewModel markerVm;
+  final MarkerViewModel markerVm;
 
   const MarkerOverlayBuilder({
     Key? key,
@@ -48,7 +48,7 @@ class MarkerOverlayBuilder extends StatelessWidget {
         );
 
         print('Marker rect: $rect');
-        print('Marker type: ${marker.type}');
+        print('Marker type: ${marker.tool.type}');
         print('Marker paint color: ${marker.paint.color}');
 
         final scaledRect =

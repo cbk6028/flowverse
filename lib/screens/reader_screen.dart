@@ -1,7 +1,7 @@
 import 'dart:math';
 
 import 'package:flowverse/screens/bottombar.dart';
-import 'package:flowverse/screens/topbar.dart';
+import 'package:flowverse/screens/topbar/topbar.dart';
 import 'package:flowverse/view_models/marker_vm.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -31,7 +31,7 @@ class ReaderScreen extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => DrawingProvider()),
         ChangeNotifierProvider(create: (_) => ReaderViewModel()),
-        ChangeNotifierProvider(create: (_) => MarkerVewModel()),
+        ChangeNotifierProvider(create: (_) => MarkerViewModel()),
 
       ],
       child: MyHomePage(selectedFilePath: filePath),
@@ -73,7 +73,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void dispose() {
     // 保存高亮
-     var markerVm = context.read<MarkerVewModel>();
+     var markerVm = context.read<MarkerViewModel>();
     markerVm.saveArchive(widget.selectedFilePath);
     super.dispose();
   }
@@ -81,7 +81,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<ReaderViewModel>();
-     var markerVm = context.read<MarkerVewModel>();
+     var markerVm = context.read<MarkerViewModel>();
 
     return CupertinoPageScaffold(
       child: SafeArea(
@@ -121,7 +121,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget buildViewer() {
     var appState = context.watch<ReaderViewModel>();
-     var markerVm = context.read<MarkerVewModel>();
+     var markerVm = context.read<MarkerViewModel>();
     final controller = appState.pdfViewerController;
 
     if (kDebugMode) {
@@ -157,7 +157,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // 大纲列表
     Widget buildOutlineList(List<PdfOutlineNode> nodes, {double indent = 0}) {
       var appState = context.watch<ReaderViewModel>();
-       var markerVm = context.read<MarkerVewModel>();
+       var markerVm = context.read<MarkerViewModel>();
 
       return Column(
         mainAxisSize: MainAxisSize.min,
