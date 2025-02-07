@@ -1,3 +1,5 @@
+import 'package:flowverse/models/shape.dart';
+import 'package:flowverse/models/tool.dart';
 import 'package:flutter/material.dart';
 import 'package:flowverse/models/stroke.dart';
 import 'dart:io';
@@ -5,22 +7,19 @@ import 'package:flutter/rendering.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 class DrawingProvider extends ChangeNotifier {
+  // StrokeType _strokeType = StrokeType.pen;
+  
   bool _isDrawingMode = false;
-  bool _isEraserMode = false;
-  bool _isPenMode = false;
   double _strokeWidth = 2.0;
   double eraserSize = 10.0;
   ShapeType currentShape = ShapeType.rectangle;
-  StrokeType _strokeType = StrokeType.pen;
+  ToolType _strokeType = ToolType.pen;
   Color _markerColor = Colors.yellow;
   double _markerOpacity = 0.3;
   String? _imagePath;
   Size? _imageSize;
 
-  // Tool tool = PenTool();
-
-  // var shapeType = ShapeType.rectangle;
-
+  
   // 笔的属性
   Color _penColor = Colors.blue;
   double _penWidth = 2.0;
@@ -36,74 +35,77 @@ class DrawingProvider extends ChangeNotifier {
   bool _isHandMode = true;
 
   bool get isDrawingMode => _isDrawingMode;
-  bool get isEraserMode => _isEraserMode;
-  bool get isPenMode => _isPenMode;
-  double get strokeWidth => _strokeWidth;
-  StrokeType get strokeType => _strokeType;
+  // bool get isEraserMode => _strokeType == StrokeType.eraser;
+  ToolType get strokeType => _strokeType;
+  Color get penColor => _penColor;
+  double get penWidth => _penWidth;
+  double get markerWidth => _markerWidth;
   Color get markerColor => _markerColor;
   double get markerOpacity => _markerOpacity;
   String? get imagePath => _imagePath;
   Size? get imageSize => _imageSize;
-
+  double get strokeWidth => _strokeWidth;
   // getter
-  Color get penColor => _penColor;
-  double get penWidth => _penWidth;
-  double get markerWidth => _markerWidth;
   Color get shapeColor => _shapeColor;
   double get shapeWidth => _shapeWidth;
   Color get shapeFillColor => _shapeFillColor;
   double get shapeFillOpacity => _shapeFillOpacity;
 
   bool get isHandMode => _isHandMode;
-  // ShapeType get currentShape => _currentShape;
 
-  void setStrokeType(StrokeType type) {
-    if (_strokeType != type) {
-      _strokeType = type;
-      notifyListeners();
-    }
-  }
-
-  void setDrawingMode(bool mode) {
-    if (_isDrawingMode != mode) {
-      _isDrawingMode = mode;
-      if (_isDrawingMode) {
-        // _isPenMode = false;
-        _isEraserMode = false;
-        _isHandMode = false;
-      }
-
-      notifyListeners();
-    }
-  }
-
-  void setEraserMode(bool mode) {
-    _isEraserMode = mode;
-    if (_isEraserMode) {
-      _isDrawingMode = false;
-      _isPenMode = false;
-      _isHandMode = false;
-    }
+  void setDrawingMode(bool value) {
+    _isDrawingMode = value;
     notifyListeners();
   }
 
-  void toggleDrawingMode() {
-    _isDrawingMode = !_isDrawingMode;
-    if (_isDrawingMode) {
-      _isEraserMode = false;
-      _isPenMode = false;
-      _isHandMode = false;
+  void setEraserMode(bool value) {
+    if (value) {
+      _strokeType = ToolType.eraser;
+    } else {
+      _strokeType = ToolType.pen;
     }
+    _isDrawingMode = value;
     notifyListeners();
   }
 
-  void toggleEraserMode() {
-    _isEraserMode = !_isEraserMode;
-    if (_isEraserMode) {
-      _isDrawingMode = false;
-      _isPenMode = false;
-      _isHandMode = false;
-    }
+  void setStrokeType(ToolType type) {
+    _strokeType = type;
+    _isDrawingMode = type != ToolType.lasso;
+    notifyListeners();
+  }
+
+  void setPenColor(Color color) {
+    _penColor = color;
+    notifyListeners();
+  }
+
+  void setPenWidth(double width) {
+    _penWidth = width;
+    notifyListeners();
+  }
+
+  void setMarkerWidth(double width) {
+    _markerWidth = width;
+    notifyListeners();
+  }
+
+  void setMarkerColor(Color color) {
+    _markerColor = color;
+    notifyListeners();
+  }
+
+  void setMarkerOpacity(double opacity) {
+    _markerOpacity = opacity;
+    notifyListeners();
+  }
+
+  void setImagePath(String? path) {
+    _imagePath = path;
+    notifyListeners();
+  }
+
+  void setImageSize(Size? size) {
+    _imageSize = size;
     notifyListeners();
   }
 
@@ -122,46 +124,6 @@ class DrawingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setMarkerColor(Color color) {
-    _markerColor = color;
-    notifyListeners();
-  }
-
-  void setMarkerOpacity(double opacity) {
-    _markerOpacity = opacity;
-    notifyListeners();
-  }
-
-  void setImagePath(String path) async {
-    _imagePath = path;
-    // 获取图片尺寸
-    final image = await decodeImageFromList(File(path).readAsBytesSync());
-    _imageSize = Size(image.width.toDouble(), image.height.toDouble());
-    notifyListeners();
-  }
-
-  void clearImage() {
-    _imagePath = null;
-    _imageSize = null;
-    notifyListeners();
-  }
-
-  // setter
-  void setPenColor(Color color) {
-    _penColor = color;
-    notifyListeners();
-  }
-
-  void setPenWidth(double width) {
-    _penWidth = width;
-    notifyListeners();
-  }
-
-  void setMarkerWidth(double width) {
-    _markerWidth = width;
-    notifyListeners();
-  }
-
   void setShapeColor(Color color) {
     _shapeColor = color;
     notifyListeners();
@@ -174,6 +136,8 @@ class DrawingProvider extends ChangeNotifier {
 
   void setShapeType(ShapeType type) {
     currentShape = type;
+    // Clear eraser mode when switching to shape tool
+    _strokeType = ToolType.shape;
     notifyListeners();
   }
 
@@ -191,18 +155,17 @@ class DrawingProvider extends ChangeNotifier {
     _isHandMode = bool;
     if (_isHandMode) {
       _isDrawingMode = false;
-      _isEraserMode = false;
     }
     notifyListeners();
   }
 
-  getDrawingColor(StrokeType strokeType) {
+  getDrawingColor(ToolType strokeType) {
     switch (strokeType) {
-      case StrokeType.pen:
+      case ToolType.pen:
         return _penColor;
-      case StrokeType.marker:
+      case ToolType.marker:
         return _markerColor;
-      case StrokeType.shape:
+      case ToolType.shape:
         return _shapeColor;
       default:
         return Colors.black;
@@ -223,21 +186,24 @@ class DrawingProvider extends ChangeNotifier {
         return PhosphorIconsLight.triangle;
       case ShapeType.star:
         return PhosphorIconsLight.star;
-      default:
-        return PhosphorIconsLight.rectangle;
     }
   }
 
-  IconData? getIcon(StrokeType strokeType) {
+  IconData? getIcon(ToolType strokeType) {
     switch (strokeType) {
-      case StrokeType.pen:
+      case ToolType.pen:
         return PhosphorIconsLight.pen;
-      case StrokeType.marker:
+      case ToolType.marker:
         return PhosphorIconsLight.highlighter;
-      case StrokeType.shape:
+      case ToolType.shape:
         return _getShapeIcon(currentShape);
       default:
         return PhosphorIconsLight.pen;
     }
+  }
+
+  void setEraserSize(double value) {
+    eraserSize = value;
+    notifyListeners();
   }
 }

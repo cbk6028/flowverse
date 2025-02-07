@@ -1,17 +1,22 @@
 import 'dart:ui' as ui;
 
+import 'package:flowverse/models/lasso.dart';
+import 'package:flowverse/models/marker.dart';
+import 'package:flowverse/models/pen.dart';
+import 'package:flowverse/models/shape.dart';
+import 'package:flowverse/models/text.dart';
+import 'package:flowverse/models/tool.dart';
 import 'package:flowverse/view_models/marker_vm.dart';
+import 'package:flowverse/widgets/canvas.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:math';
 import 'package:flowverse/models/stroke.dart';
 import 'package:flowverse/provider/drawing_provider.dart';
 import 'package:pdfrx/pdfrx.dart';
-import 'package:flutter/rendering.dart' as ui;
 import 'dart:io';
 
-// 控制点类型
-enum ControlPoint { topLeft, topRight, bottomLeft, bottomRight, rotate }
+part 'lasso.dart';
 
 class DrawingOverlay extends StatefulWidget {
   final Rect pageRect;
@@ -32,114 +37,73 @@ class _DrawingOverlayState extends State<DrawingOverlay> {
   bool _isPointerInside = false;
   Offset? _currentEraserPosition;
   List<Stroke> selectedStrokes = [];
-  Path? _lassoPath;
-  Rect? _selectionRect; // 选择框矩形
+  // Path? _lassoPath;
+  Rect? selectionRect; // 选择框矩形
   bool _isDraggingSelection = false; // 是否正在拖动选择框
-  Offset? _dragStartOffset; // 拖动起始点
-  List<Offset> _originalPositions = []; // 存储选中笔画的原始位置
+
+  // Offset? _dragStartOffset; // 拖动起始点
+  // List<Offset> _originalPositions = []; // 存储选中笔画的原始位置
   TextEditingController? _textController;
   FocusNode? _focusNode;
   Offset? _textPosition;
   bool _isEditing = false;
+
   ui.Image? _currentImage;
   Offset? _imagePosition;
   Size? _imageSize;
   bool _isImageSelected = false;
 
-  Rect? selectionRect;
-  double _rotationAngle = 0.0;
-  double _scale = 1.0;
-  Offset? _lastFocalPoint;
+  // Rect? get selectionRect => selectionRect;
+  final double _rotationAngle = 0.0;
+  // double _scale = 1.0;
+  // Offset? _lastFocalPoint;
   bool _isTransforming = false;
   ControlPoint? _activeControlPoint;
+  // Offset? _rotationCenter;
 
-  // 判断点击位置是否在控制点上
-  ControlPoint? _getControlPoint(Offset position) {
-    if (selectionRect == null) return null;
-
-    final points = {
-      ControlPoint.topLeft: selectionRect!.topLeft,
-      ControlPoint.topRight: selectionRect!.topRight,
-      ControlPoint.bottomLeft: selectionRect!.bottomLeft,
-      ControlPoint.bottomRight: selectionRect!.bottomRight,
-      ControlPoint.rotate: Offset(
-        selectionRect!.center.dx,
-        selectionRect!.top - 30,
-      ),
-    };
-
-    for (var entry in points.entries) {
-      if ((position - entry.value).distance < 20) {
-        return entry.key;
-      }
-    }
-    return null;
-  }
+  // 套索选择管理器
+  final LassoSelection _lassoSelection = LassoSelection();
 
   // 处理变换操作
-  void _handleTransform(Offset currentPoint) {
-    if (selectionRect == null || _activeControlPoint == null) return;
+  // void _handleTransform(Offset currentPoint) {
+  //   _lassoSelection.handleTransform(currentPoint);
+  //   setState(() {});
+  // }
 
-    final center = selectionRect!.center;
-    final originalRect = selectionRect!;
+  // 处理旋转
+  // void _handleRotation(Offset currentPoint) {
+  //   _lassoSelection.handleRotation(currentPoint);
+  //   setState(() {});
+  // }
 
-    switch (_activeControlPoint) {
-      case ControlPoint.rotate:
-        final previousAngle = _rotationAngle;
-        final originalAngle = (center - _lastFocalPoint!).direction;
-        final newAngle = (center - currentPoint).direction;
-        _rotationAngle += (newAngle - originalAngle);
-        _lastFocalPoint = currentPoint;
-        break;
+  // 旋转笔画
+  // void _rotateStrokes(double angle) {
+  //   if (selectionRect == null ||
+  //       selectedStrokes.isEmpty ||
+  //       _rotationCenter == null) return;
 
-      case ControlPoint.topLeft:
-      case ControlPoint.topRight:
-      case ControlPoint.bottomLeft:
-      case ControlPoint.bottomRight:
-        final dx = currentPoint.dx - _lastFocalPoint!.dx;
-        final dy = currentPoint.dy - _lastFocalPoint!.dy;
+  //   print('${DateTime.now()} : rotating strokes by $angle radians');
 
-        double newLeft = originalRect.left;
-        double newTop = originalRect.top;
-        double newWidth = originalRect.width;
-        double newHeight = originalRect.height;
+  //   final cosAngle = cos(angle);
+  //   final sinAngle = sin(angle);
 
-        switch (_activeControlPoint) {
-          case ControlPoint.topLeft:
-            newLeft += dx;
-            newTop += dy;
-            newWidth -= dx;
-            newHeight -= dy;
-            break;
-          case ControlPoint.topRight:
-            newTop += dy;
-            newWidth += dx;
-            newHeight -= dy;
-            break;
-          case ControlPoint.bottomLeft:
-            newLeft += dx;
-            newWidth -= dx;
-            newHeight += dy;
-            break;
-          case ControlPoint.bottomRight:
-            newWidth += dx;
-            newHeight += dy;
-            break;
-          default:
-            break;
-        }
+  //   for (var stroke in selectedStrokes) {
+  //     for (var i = 0; i < stroke.points.length; i++) {
+  //       final point = stroke.points[i];
+  //       final dx = point.x - _rotationCenter!.dx;
+  //       final dy = point.y - _rotationCenter!.dy;
 
-        // 确保矩形不会太小
-        if (newWidth > 20 && newHeight > 20) {
-          selectionRect = Rect.fromLTWH(newLeft, newTop, newWidth, newHeight);
-        }
-        _lastFocalPoint = currentPoint;
-        break;
-      default:
-        break;
-    }
-    setState(() {});
-  }
+  //       // 应用旋转变换
+  //       final newX = dx * cosAngle - dy * sinAngle + _rotationCenter!.dx;
+  //       final newY = dx * sinAngle + dy * cosAngle + _rotationCenter!.dy;
+
+  //       stroke.points[i] = Point(newX, newY);
+  //     }
+  //   }
+
+  //   // 更新选择框
+  //   _calculateSelectionRect();
+  // }
 
   // 使用PDF原始尺寸的比例计算缩放
   double get scale => widget.pageRect.width / widget.page.width;
@@ -158,16 +122,24 @@ class _DrawingOverlayState extends State<DrawingOverlay> {
 
   @override
   Widget build(BuildContext context) {
+
+
     return Consumer<MarkerViewModel>(builder: (context, markerVm, child) {
       final strokes = markerVm.strokes[widget.page.pageNumber] ?? [];
 
       return Consumer<DrawingProvider>(
           builder: (context, drawingProvider, child) {
+        // Clear eraser position when not in eraser mode
+        bool isEraserMode = drawingProvider.strokeType == ToolType.eraser;
+        if (!isEraserMode && _currentEraserPosition != null) {
+          _currentEraserPosition = null;
+        }
+
         return Stack(
           children: [
             Listener(
               onPointerMove: (event) {
-                if (drawingProvider.isEraserMode) {
+                if (drawingProvider.strokeType == ToolType.eraser) {
                   final box = context.findRenderObject() as RenderBox;
                   final localPosition = box.globalToLocal(event.position);
                   setState(() {
@@ -177,7 +149,7 @@ class _DrawingOverlayState extends State<DrawingOverlay> {
                 }
               },
               onPointerHover: (event) {
-                if (drawingProvider.isEraserMode) {
+                if (drawingProvider.strokeType == ToolType.eraser) {
                   final box = context.findRenderObject() as RenderBox;
                   final localPosition = box.globalToLocal(event.position);
                   setState(() {
@@ -187,7 +159,7 @@ class _DrawingOverlayState extends State<DrawingOverlay> {
                 }
               },
               onPointerDown: (event) {
-                if (drawingProvider.strokeType == StrokeType.text) {
+                if (drawingProvider.strokeType == ToolType.text) {
                   final RenderBox box = context.findRenderObject() as RenderBox;
                   final point =
                       _toPageCoordinate(box.globalToLocal(event.position));
@@ -195,24 +167,19 @@ class _DrawingOverlayState extends State<DrawingOverlay> {
                 }
               },
               child: IgnorePointer(
-                ignoring: !drawingProvider.isDrawingMode &&
-                    !drawingProvider.isEraserMode,
+                ignoring: !drawingProvider.isDrawingMode && !isEraserMode,
                 child: GestureDetector(
                   onPanStart: (details) {
                     _handlePanStart(
                         drawingProvider, context, details, markerVm);
-                    _activeControlPoint =
-                        _getControlPoint(details.localPosition);
-                    if (_activeControlPoint != null) {
-                      _isTransforming = true;
-                      _lastFocalPoint = details.localPosition;
-                    }
                   },
                   onPanUpdate: (details) {
                     _handlePanUpdate(
                         drawingProvider, context, details, markerVm);
                     if (_isTransforming && _activeControlPoint != null) {
-                      _handleTransform(details.localPosition);
+                      // _handleTransform(details.localPosition);
+                      _lassoSelection.handleTransform(details.localPosition);
+                      setState(() {});
                     }
                   },
                   onPanEnd: (details) {
@@ -221,7 +188,7 @@ class _DrawingOverlayState extends State<DrawingOverlay> {
                     _activeControlPoint = null;
                   },
                   child: CustomPaint(
-                    painter: _DrawingPainter(
+                    painter: Painter(
                       strokes: [
                         ...strokes,
                         if (_currentStroke != null) _currentStroke!
@@ -232,9 +199,9 @@ class _DrawingOverlayState extends State<DrawingOverlay> {
                       eraserPosition:
                           _isPointerInside ? _currentEraserPosition : null,
                       eraserSize: drawingProvider.eraserSize,
-                      lassoPath: _lassoPath,
-                      selectedStrokes: selectedStrokes,
-                      selectionRect: _selectionRect,
+                      lassoPath: _lassoSelection.lassoPath,
+                      selectedStrokes: _lassoSelection.selectedStrokes,
+                      selectionRect: _lassoSelection.selectionRect,
                       currentImage: _currentImage,
                       imagePosition: _imagePosition,
                       imageSize: _imageSize,
@@ -331,75 +298,25 @@ class _DrawingOverlayState extends State<DrawingOverlay> {
     });
   }
 
-  void _showLassoMenu(BuildContext context, MarkerViewModel markerVm) {
-    showMenu(
-      context: context,
-      position: RelativeRect.fromLTRB(0, 0, 0, 0),
-      items: [
-        PopupMenuItem(
-          child: ListTile(
-            leading: Icon(Icons.delete),
-            title: Text('删除选中'),
-            onTap: () {
-              for (var stroke in selectedStrokes) {
-                markerVm.removeStroke(widget.page.pageNumber, stroke);
-              }
-              selectedStrokes.clear();
-              Navigator.pop(context);
-            },
-          ),
-        ),
-        PopupMenuItem(
-          child: ListTile(
-            leading: Icon(Icons.color_lens),
-            title: Text('修改颜色'),
-            onTap: () {
-              Navigator.pop(context);
-              // _showColorPicker(context, markerVm);
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
   void _handlePanEnd(
       DrawingProvider drawingProvider, MarkerViewModel markerVm) {
     if (_isDraggingSelection) {
       _isDraggingSelection = false;
-      _dragStartOffset = null;
-      setState(() {});
-      return;
+      // _dragStartOffset = null;
+      // _originalPositions = [];
     }
 
-    if (drawingProvider.strokeType == StrokeType.lasso && _lassoPath != null) {
-      _lassoPath!.close();
-
-      // 检查哪些笔画在套索区域内
+    if (drawingProvider.strokeType == ToolType.lasso &&
+        _lassoSelection.lassoPath != null) {
       final strokes = markerVm.strokes[widget.page.pageNumber] ?? [];
-      selectedStrokes = strokes.where((stroke) {
-        return stroke.points.any((point) {
-          final offset = Offset(point.x.toDouble(), point.y.toDouble());
-          return _lassoPath!.contains(offset);
-        });
-      }).toList();
-
-      // 计算选择框
-      _calculateSelectionRect();
-
-      // 如果有选中的笔画，显示浮动菜单
-      if (selectedStrokes.isNotEmpty) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _showFloatingMenu(context, markerVm);
-        });
-      }
-
-      _lassoPath = null;
-      _currentStroke = null;
-      setState(() {});
+      _lassoSelection.handleLassoEnd(strokes);
+      setState(() {
+        _currentStroke = null;
+      });
     } else if (drawingProvider.isDrawingMode && _currentStroke != null) {
       markerVm.addStroke(_currentStroke!, widget.page.pageNumber);
       _currentStroke = null;
+      setState(() {});
     }
   }
 
@@ -408,185 +325,276 @@ class _DrawingOverlayState extends State<DrawingOverlay> {
     final RenderBox box = context.findRenderObject() as RenderBox;
     final point = _toPageCoordinate(box.globalToLocal(details.globalPosition));
 
-    if (_isDraggingSelection && _dragStartOffset != null) {
+    // 处理控制点拖动
+    if (_activeControlPoint != null && _lassoSelection.selectionRect != null) {
+      if (_activeControlPoint == ControlPoint.rotate) {
+        _lassoSelection.handleRotation(point);
+      } else {
+        _lassoSelection.handleControlPointDrag(_activeControlPoint!, point);
+        // 根据选择框的变化调整笔画
+        // _resizeStrokes();
+        _lassoSelection.resizeStrokes();
+      }
+      setState(() {});
+      return;
+    }
+
+    if (_lassoSelection.isDraggingSelection &&
+        _lassoSelection.dragStartOffset != null) {
       // 计算移动距离
-      final delta = point - _dragStartOffset!;
-      _moveSelectedStrokes(delta);
-      _dragStartOffset = point;
+      final delta = point - _lassoSelection.dragStartOffset!;
+      _lassoSelection.moveSelectedStrokes(delta);
+      _lassoSelection.dragStartOffset = point;
       setState(() {});
       return;
     }
 
     if (drawingProvider.isDrawingMode && _currentStroke != null) {
-      if (drawingProvider.strokeType == StrokeType.lasso &&
-          _lassoPath != null) {
-        // print('lasso update');
-
-        _lassoPath!.lineTo(point.dx, point.dy);
-        _currentStroke!.points.add(Point(point.dx, point.dy));
-        setState(() {});
-      }
-      if (drawingProvider.strokeType == StrokeType.marker) {
-        setState(() {
+      switch (drawingProvider.strokeType) {
+        case ToolType.pen:
           _currentStroke!.points.add(Point(point.dx, point.dy));
-        });
+          setState(() {});
+          break;
+        case ToolType.marker:
+          setState(() {
+            _currentStroke!.points.add(Point(point.dx, point.dy));
+          });
+          break;
+        case ToolType.shape:
+          // 对于形状，我们只需要更新最后一个点
+          if (_currentStroke!.points.length > 1) {
+            _currentStroke!.points.removeLast();
+          }
+          _currentStroke!.points.add(Point(point.dx, point.dy));
+          setState(() {});
+          break;
+
+        case ToolType.lasso:
+          _lassoSelection.updateLassoPath(point);
+          _currentStroke!.points.add(Point(point.dx, point.dy));
+          setState(() {});
+          break;
+
+        case ToolType.text:
+          break;
+        case ToolType.image:
+          if (drawingProvider.imagePath != null) {
+            _loadImage(drawingProvider.imagePath!).then((image) {
+              setState(() {
+                _currentImage = image;
+                _imagePosition =
+                    Offset(point.dx.toDouble(), point.dy.toDouble());
+                _imageSize = _calculateFitSize(
+                  Size(image.width.toDouble(), image.height.toDouble()),
+                  Size(200, 200), // 默认最大尺寸
+                );
+              });
+            });
+          }
+          break;
+        case ToolType.eraser:
+          _eraseAtPoint(point, markerVm);
+          break;
       }
-      if (_currentStroke!.tool.type == StrokeType.pen) {
-        _currentStroke!.points.add(Point(point.dx, point.dy));
-      } else {
-        // 对于形状，我们只需要更新最后一个点
-        if (_currentStroke!.points.length > 1) {
-          _currentStroke!.points.removeLast();
-        }
-        _currentStroke!.points.add(Point(point.dx, point.dy));
-      }
-      setState(() {});
-    } else if (drawingProvider.isEraserMode) {
-      _eraseAtPoint(point, markerVm);
     }
+
+    // if (drawingProvider.isEraserMode) {
+    //   _eraseAtPoint(point, markerVm);
+    // }
   }
 
   void _handlePanStart(DrawingProvider drawingProvider, BuildContext context,
       DragStartDetails details, MarkerViewModel markerVm) {
     final RenderBox box = context.findRenderObject() as RenderBox;
-    final point = _toPageCoordinate(box.globalToLocal(details.globalPosition));
+    final globalPoint = details.globalPosition;
+    final localPoint = box.globalToLocal(globalPoint);
+    final point = _toPageCoordinate(localPoint);
 
-    if (drawingProvider.strokeType == StrokeType.text) {
-      _createNewTextInput(point, context, markerVm);
-      return;
-    }
+    print('${DateTime.now()} : _handlePanStart called');
+    print('${DateTime.now()} : global point = $globalPoint');
+    print('${DateTime.now()} : local point = $localPoint');
+    print('${DateTime.now()} : page point = $point');
+    print(
+        '${DateTime.now()} : selectionRect = ${_lassoSelection.selectionRect}');
 
     // 检查是否点击了选择框
-    if (_selectionRect != null && _isPointOnSelectionRect(point)) {
-      _isDraggingSelection = true;
-      _dragStartOffset = point;
-      // 保存原始位置
-      _originalPositions = selectedStrokes
-          .expand((stroke) => stroke.points)
-          .map((p) => Offset(p.x.toDouble(), p.y.toDouble()))
-          .toList();
-      return;
+    if (_lassoSelection.selectionRect != null) {
+      // 首先检查控制点
+      final controlPoint = _lassoSelection.getControlPoint(
+          _lassoSelection.selectionRect!, point);
+      if (controlPoint != null) {
+        print('${DateTime.now()} : clicked on control point $controlPoint');
+        _activeControlPoint = controlPoint;
+        _lassoSelection.dragStartOffset = point;
+        _lassoSelection.originalPositions = _lassoSelection.selectedStrokes
+            .expand((stroke) => stroke.points)
+            .map((p) => Offset(p.x.toDouble(), p.y.toDouble()))
+            .toList();
+        return;
+      }
+
+      // 然后检查选择框内部
+      if (_lassoSelection.isPointOnSelectionRect(point)) {
+        print('${DateTime.now()} : clicked inside selection rect');
+        _lassoSelection.isDraggingSelection = true;
+        _lassoSelection.dragStartOffset = point;
+        _lassoSelection.originalPositions = _lassoSelection.selectedStrokes
+            .expand((stroke) => stroke.points)
+            .map((p) => Offset(p.x.toDouble(), p.y.toDouble()))
+            .toList();
+        return;
+      }
+
+      // 如果点击在选择框外部，清除选择
+      print(
+          '${DateTime.now()} : clicked outside selection rect, clearing selection');
+      _lassoSelection.clearSelection();
+      setState(() {});
     }
 
     if (drawingProvider.isDrawingMode) {
-      if (drawingProvider.strokeType == StrokeType.pen) {
-        _currentStroke = Stroke(
-          paint: Paint()
-            ..color = drawingProvider.penColor
-            ..strokeWidth = drawingProvider.penWidth / scale
-            ..strokeCap = StrokeCap.round
-            ..strokeJoin = StrokeJoin.round
-            ..style = PaintingStyle.stroke,
-          pageNumber: widget.page.pageNumber,
-          tool: PenTool(),
-          initialPoints: [Point(point.dx, point.dy)],
-        );
-      } else if (drawingProvider.strokeType == StrokeType.marker) {
-        _currentStroke = Stroke(
-          paint: Paint()
-            ..color = drawingProvider.markerColor
-                .withOpacity(drawingProvider.markerOpacity)
-            ..strokeWidth = drawingProvider.markerWidth / scale
-            ..strokeCap = StrokeCap.round
-            ..strokeJoin = StrokeJoin.round
-            ..style = PaintingStyle.stroke
-            ..blendMode = BlendMode.srcOver,
-          pageNumber: widget.page.pageNumber,
-          tool: MTool(),
-          initialPoints: [Point(point.dx, point.dy)],
-        );
-      } else if (drawingProvider.strokeType == StrokeType.lasso) {
-        // 开始新的套索选择时清除旧的选择
-        selectedStrokes.clear();
-        _selectionRect = null;
-        _lassoPath = Path();
-        _lassoPath!.moveTo(point.dx, point.dy);
-        _currentStroke = Stroke(
-          paint: Paint()
-            ..color = Colors.blue.withOpacity(0.5)
-            ..strokeWidth = 1 / scale
-            ..style = PaintingStyle.stroke,
-          pageNumber: widget.page.pageNumber,
-          tool: LassoTool(),
-          initialPoints: [Point(point.dx, point.dy)],
-        );
-      } else if (drawingProvider.strokeType == StrokeType.shape) {
-        // 创建填充画笔
-        final fillPaint = Paint()
-          ..color = drawingProvider.shapeFillColor
-              .withOpacity(drawingProvider.shapeFillOpacity)
-          ..style = PaintingStyle.fill;
-
-        // 只对封闭图形设置填充画笔
-        final bool isClosedShape = [
-          ShapeType.rectangle,
-          ShapeType.circle,
-          ShapeType.triangle,
-          ShapeType.star,
-        ].contains(drawingProvider.currentShape);
-
-        Tool tool = ShapeTool(
-          drawingProvider.currentShape,
-          fillPaint: isClosedShape ? fillPaint : null, // 只有封闭图形才设置填充画笔
-        );
-
-        _currentStroke = Stroke(
-          paint: Paint()
-            ..color = drawingProvider.shapeColor
-            ..strokeWidth = drawingProvider.shapeWidth / scale
-            ..strokeCap = StrokeCap.round
-            ..strokeJoin = StrokeJoin.round
-            ..style = PaintingStyle.stroke,
-          pageNumber: widget.page.pageNumber,
-          tool: tool,
-          initialPoints: [Point(point.dx, point.dy)],
-        );
-      }
-    } else if (drawingProvider.isEraserMode) {
-      _eraseAtPoint(point, markerVm);
-    }
-
-    if (drawingProvider.strokeType == StrokeType.image &&
-        drawingProvider.imagePath != null) {
-      _loadImage(drawingProvider.imagePath!).then((image) {
-        setState(() {
-          _currentImage = image;
-          _imagePosition = Offset(point.dx.toDouble(), point.dy.toDouble());
-          _imageSize = _calculateFitSize(
-            Size(image.width.toDouble(), image.height.toDouble()),
-            Size(200, 200), // 默认最大尺寸
+      switch (drawingProvider.strokeType) {
+        case ToolType.pen:
+          _currentStroke = Stroke(
+            paint: Paint()
+              ..color = drawingProvider.penColor
+              ..strokeWidth = drawingProvider.penWidth / scale
+              ..strokeCap = StrokeCap.round
+              ..strokeJoin = StrokeJoin.round
+              ..style = PaintingStyle.stroke,
+            pageNumber: widget.page.pageNumber,
+            tool: Pen(),
+            initialPoints: [Point(point.dx, point.dy)],
           );
-        });
-      });
+          break;
+        case ToolType.marker:
+          _currentStroke = Stroke(
+            paint: Paint()
+              ..color = drawingProvider.markerColor
+                  .withOpacity(drawingProvider.markerOpacity)
+              ..strokeWidth = drawingProvider.markerWidth / scale
+              ..strokeCap = StrokeCap.round
+              ..strokeJoin = StrokeJoin.round
+              ..style = PaintingStyle.stroke
+              ..blendMode = BlendMode.srcOver,
+            pageNumber: widget.page.pageNumber,
+            tool: MTool(),
+            initialPoints: [Point(point.dx, point.dy)],
+          );
+        case ToolType.shape:
+          // 创建填充画笔
+          final fillPaint = Paint()
+            ..color = drawingProvider.shapeFillColor
+                .withOpacity(drawingProvider.shapeFillOpacity)
+            ..style = PaintingStyle.fill;
+
+          // 只对封闭图形设置填充画笔
+          final bool isClosedShape = [
+            ShapeType.rectangle,
+            ShapeType.circle,
+            ShapeType.triangle,
+            ShapeType.star,
+          ].contains(drawingProvider.currentShape);
+
+          Tool tool = Shape(
+            drawingProvider.currentShape,
+            fillPaint: isClosedShape ? fillPaint : null, // 只有封闭图形才设置填充画笔
+          );
+
+          _currentStroke = Stroke(
+            paint: Paint()
+              ..color = drawingProvider.shapeColor
+              ..strokeWidth = drawingProvider.shapeWidth / scale
+              ..strokeCap = StrokeCap.round
+              ..strokeJoin = StrokeJoin.round
+              ..style = PaintingStyle.stroke,
+            pageNumber: widget.page.pageNumber,
+            tool: tool,
+            initialPoints: [Point(point.dx, point.dy)],
+          );
+        case ToolType.lasso:
+          // 开始新的套索选择时清除旧的选择
+          _lassoSelection.clearSelection();
+          _lassoSelection.lassoPath = Path();
+          _lassoSelection.lassoPath!.moveTo(point.dx, point.dy);
+          _currentStroke = Stroke(
+            paint: Paint()
+              ..color = Colors.blue.withOpacity(0.5)
+              ..strokeWidth = 1 / scale
+              ..style = PaintingStyle.stroke,
+            pageNumber: widget.page.pageNumber,
+            tool: Lasso(),
+            initialPoints: [Point(point.dx, point.dy)],
+          );
+        case ToolType.text:
+          _createNewTextInput(point, context, markerVm);
+          break;
+        case ToolType.image:
+          if (drawingProvider.imagePath != null) {
+            _loadImage(drawingProvider.imagePath!).then((image) {
+              setState(() {
+                _currentImage = image;
+                _imagePosition =
+                    Offset(point.dx.toDouble(), point.dy.toDouble());
+                _imageSize = _calculateFitSize(
+                  Size(image.width.toDouble(), image.height.toDouble()),
+                  Size(200, 200), // 默认最大尺寸
+                );
+              });
+            });
+          }
+          break;
+        case ToolType.eraser:
+          _eraseAtPoint(point, markerVm);
+          break;
+      }
+
+      // if (drawingProvider.isEraserMode) {
+      //   _eraseAtPoint(point, markerVm);
+      // }
     }
   }
 
   void _eraseAtPoint(Offset point, MarkerViewModel markerVm) {
     final strokes = markerVm.strokes[widget.page.pageNumber] ?? [];
-    final eraserRadius = 10.0; // 橡皮擦的半径
+    final eraserRadius =
+        Provider.of<DrawingProvider>(context, listen: false).eraserSize;
 
     // 检查每个笔画
     for (var i = strokes.length - 1; i >= 0; i--) {
       final stroke = strokes[i];
       bool shouldErase = false;
 
-      // 检查笔画的每个点
-      for (var j = 0; j < stroke.points.length; j++) {
-        final strokePoint = stroke.points[j];
-        final distance = _calculateDistance(
-          point,
-          Offset(strokePoint.x as double, strokePoint.y as double),
-        );
+      if (stroke.tool is Shape) {
+        // 对于形状，我们需要检查整个形状区域
+        final bounds = _calculateShapeBounds(stroke.points);
+        final expandedBounds = Rect.fromLTWH(
+            bounds.left - eraserRadius,
+            bounds.top - eraserRadius,
+            bounds.width + eraserRadius * 2,
+            bounds.height + eraserRadius * 2);
 
-        // 如果点在橡皮擦范围内
-        if (distance <= eraserRadius) {
+        if (expandedBounds.contains(point)) {
           shouldErase = true;
-          break;
+        }
+      } else {
+        // 对于笔和马克笔，检查每个点
+        for (var j = 0; j < stroke.points.length; j++) {
+          final strokePoint = stroke.points[j];
+          final distance = _calculateDistance(
+            point,
+            Offset(strokePoint.x as double, strokePoint.y as double),
+          );
+
+          // 如果点在橡皮擦范围内
+          if (distance <= eraserRadius) {
+            shouldErase = true;
+            break;
+          }
         }
       }
 
       if (shouldErase) {
-        // 从 MarkerVm 中移除笔画
         markerVm.removeStroke(widget.page.pageNumber, stroke);
       }
     }
@@ -598,114 +606,163 @@ class _DrawingOverlayState extends State<DrawingOverlay> {
     return sqrt(dx * dx + dy * dy);
   }
 
-  // 计算选中笔画的边界矩形
-  void _calculateSelectionRect() {
-    if (selectedStrokes.isEmpty) {
-      _selectionRect = null;
-      return;
+  Rect _calculateShapeBounds(List<Point> points) {
+    if (points.isEmpty) return Rect.zero;
+
+    double minX = points[0].x as double;
+    double minY = points[0].y as double;
+    double maxX = minX;
+    double maxY = minY;
+
+    for (var point in points) {
+      final x = point.x as double;
+      final y = point.y as double;
+      minX = min(minX, x);
+      minY = min(minY, y);
+      maxX = max(maxX, x);
+      maxY = max(maxY, y);
     }
 
-    double minX = double.infinity;
-    double minY = double.infinity;
-    double maxX = double.negativeInfinity;
-    double maxY = double.negativeInfinity;
-
-    for (var stroke in selectedStrokes) {
-      for (var point in stroke.points) {
-        minX = min(minX, point.x.toDouble());
-        minY = min(minY, point.y.toDouble());
-        maxX = max(maxX, point.x.toDouble());
-        maxY = max(maxY, point.y.toDouble());
-      }
-    }
-
-    _selectionRect = Rect.fromLTRB(minX, minY, maxX, maxY);
+    return Rect.fromLTRB(minX, minY, maxX, maxY);
   }
+
+  // 计算选中笔画的边界矩形
+  // void _calculateSelectionRect() {
+  //   print('${DateTime.now()} : _calculateSelectionRect start');
+  //   if (_lassoSelection.selectedStrokes.isEmpty) {
+  //     print('${DateTime.now()} : no selected strokes');
+  //     _lassoSelection.selectionRect = null;
+  //     return;
+  //   }
+
+  //   double minX = double.infinity;
+  //   double minY = double.infinity;
+  //   double maxX = -double.infinity;
+  //   double maxY = -double.infinity;
+
+  //   for (var stroke in _lassoSelection.selectedStrokes) {
+  //     for (var point in stroke.points) {
+  //       minX = min(minX, point.x.toDouble());
+  //       minY = min(minY, point.y.toDouble());
+  //       maxX = max(maxX, point.x.toDouble());
+  //       maxY = max(maxY, point.y.toDouble());
+  //     }
+  //   }
+
+  //   _lassoSelection.selectionRect = Rect.fromLTRB(minX, minY, maxX, maxY);
+  //   print(
+  //       '${DateTime.now()} : set selectionRect = ${_lassoSelection.selectionRect}');
+  // }
 
   // 检查点是否在选择框上
-  bool _isPointOnSelectionRect(Offset point) {
-    if (_selectionRect == null) return false;
-    final expandedRect = _selectionRect!.inflate(10); // 扩大点击区域
-    return expandedRect.contains(point);
-  }
+  // bool _isPointOnSelectionRect(Offset point) {
+  //   print('${DateTime.now()} : _isPointOnSelectionRect called');
+  //   print('${DateTime.now()} : point = $point');
+  //   print(
+  //       '${DateTime.now()} : selectionRect = ${_lassoSelection.selectionRect}');
+
+  //   if (_lassoSelection.selectionRect == null) return false;
+
+  //   // 扩大点击区域到20像素，与控制点检测保持一致
+  //   final expandedRect = Rect.fromLTRB(
+  //     _lassoSelection.selectionRect!.left - 20,
+  //     _lassoSelection.selectionRect!.top - 20,
+  //     _lassoSelection.selectionRect!.right + 20,
+  //     _lassoSelection.selectionRect!.bottom + 20,
+  //   );
+
+  //   // 首先检查是否在控制点上
+  //   if (_lassoSelection.getControlPoint(
+  //           _lassoSelection.selectionRect!, point) !=
+  //       null) {
+  //     print('${DateTime.now()} : point is on control point');
+  //     return false;
+  //   }
+
+  //   final result = expandedRect.contains(point);
+  //   print(
+  //       '${DateTime.now()} : point is ${result ? "on" : "not on"} selection rect');
+  //   return result;
+  // }
 
   // 移动选中的笔画
-  void _moveSelectedStrokes(Offset delta) {
-    if (selectedStrokes.isEmpty) return;
+  // void _moveSelectedStrokes(Offset delta) {
+  //   if (_lassoSelection.selectedStrokes.isEmpty) return;
 
-    for (var i = 0; i < selectedStrokes.length; i++) {
-      var stroke = selectedStrokes[i];
-      for (var j = 0; j < stroke.points.length; j++) {
-        var point = stroke.points[j];
-        stroke.points[j] = Point(
-          point.x + delta.dx,
-          point.y + delta.dy,
-        );
-      }
-    }
+  //   for (var i = 0; i < _lassoSelection.selectedStrokes.length; i++) {
+  //     var stroke = _lassoSelection.selectedStrokes[i];
+  //     for (var j = 0; j < stroke.points.length; j++) {
+  //       var point = stroke.points[j];
+  //       stroke.points[j] = Point(
+  //         point.x + delta.dx,
+  //         point.y + delta.dy,
+  //       );
+  //     }
+  //   }
 
-    // 更新选择框位置
-    if (_selectionRect != null) {
-      _selectionRect = _selectionRect!.translate(delta.dx, delta.dy);
-    }
-  }
+  //   // 更新选择框位置
+  //   if (_lassoSelection.selectionRect != null) {
+  //     _lassoSelection.selectionRect =
+  //         _lassoSelection.selectionRect!.translate(delta.dx, delta.dy);
+  //   }
+  // }
 
-  void _showFloatingMenu(BuildContext context, MarkerViewModel markerVm) {
-    if (_selectionRect == null) return;
+  // void _showFloatingMenu(BuildContext context, MarkerViewModel markerVm) {
+  //   if (_lassoSelection.selectionRect == null) return;
 
-    final RenderBox overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox;
-    final RenderBox box = context.findRenderObject() as RenderBox;
+  //   final RenderBox overlay =
+  //       Overlay.of(context).context.findRenderObject() as RenderBox;
+  //   final RenderBox box = context.findRenderObject() as RenderBox;
 
-    // 计算菜单位置（在选择框上方）
-    final Offset localPosition = Offset(
-      _selectionRect!.left,
-      _selectionRect!.top - 50, // 在选择框上方50像素
-    );
-    final Offset globalPosition = box.localToGlobal(localPosition);
+  //   // 计算菜单位置（在选择框上方）
+  //   final Offset localPosition = Offset(
+  //     _lassoSelection.selectionRect!.left,
+  //     _lassoSelection.selectionRect!.top - 50, // 在选择框上方50像素
+  //   );
+  //   final Offset globalPosition = box.localToGlobal(localPosition);
 
-    showMenu(
-      context: context,
-      position: RelativeRect.fromRect(
-        Rect.fromPoints(
-          globalPosition,
-          globalPosition + const Offset(200, 0), // 菜单宽度
-        ),
-        Offset.zero & overlay.size,
-      ),
-      items: [
-        PopupMenuItem(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: Icon(Icons.delete, size: 20),
-                onPressed: () {
-                  for (var stroke in selectedStrokes) {
-                    markerVm.removeStroke(widget.page.pageNumber, stroke);
-                  }
-                  selectedStrokes.clear();
-                  _selectionRect = null;
-                  setState(() {});
-                  Navigator.pop(context);
-                },
-                tooltip: '删除',
-              ),
-              IconButton(
-                icon: Icon(Icons.color_lens, size: 20),
-                onPressed: () {
-                  // TODO: 实现颜色修改逻辑
-                  Navigator.pop(context);
-                },
-                tooltip: '修改颜色',
-              ),
-              // 可以添加更多按钮
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+  //   showMenu(
+  //     context: context,
+  //     position: RelativeRect.fromRect(
+  //       Rect.fromPoints(
+  //         globalPosition,
+  //         globalPosition + const Offset(200, 0), // 菜单宽度
+  //       ),
+  //       Offset.zero & overlay.size,
+  //     ),
+  //     items: [
+  //       PopupMenuItem(
+  //         child: Row(
+  //           mainAxisSize: MainAxisSize.min,
+  //           children: [
+  //             IconButton(
+  //               icon: Icon(Icons.delete, size: 20),
+  //               onPressed: () {
+  //                 for (var stroke in _lassoSelection.selectedStrokes) {
+  //                   markerVm.removeStroke(widget.page.pageNumber, stroke);
+  //                 }
+  //                 _lassoSelection.selectedStrokes.clear();
+  //                 _lassoSelection.selectionRect = null;
+  //                 setState(() {});
+  //                 Navigator.pop(context);
+  //               },
+  //               tooltip: '删除',
+  //             ),
+  //             IconButton(
+  //               icon: Icon(Icons.color_lens, size: 20),
+  //               onPressed: () {
+  //                 // TODO: 实现颜色修改逻辑
+  //                 Navigator.pop(context);
+  //               },
+  //               tooltip: '修改颜色',
+  //             ),
+  //             // 可以添加更多按钮
+  //           ],
+  //         ),
+  //       ),
+  //     ],
+  //   );
+  // }
 
   void _createNewTextInput(
       Offset position, BuildContext context, MarkerViewModel markerVm) {
@@ -836,415 +893,9 @@ class _DrawingOverlayState extends State<DrawingOverlay> {
     );
   }
 
+// image
   void _handleResizeUpdate(DragUpdateDetails details) {
     // Implementation of _handleResizeUpdate method
   }
-}
 
-class _DrawingPainter extends CustomPainter {
-  final List<Stroke> strokes;
-  final double scale;
-  final Size pageSize;
-  final Size screenSize;
-  final Offset? eraserPosition;
-  final double eraserSize;
-  final Path? lassoPath;
-  final List<Stroke> selectedStrokes;
-  final Rect? selectionRect;
-  final ui.Image? currentImage;
-  final Offset? imagePosition;
-  final Size? imageSize;
-  final double rotationAngle;
-
-  _DrawingPainter({
-    required this.strokes,
-    required this.scale,
-    required this.pageSize,
-    required this.screenSize,
-    required this.eraserPosition,
-    required this.eraserSize,
-    required this.lassoPath,
-    required this.selectedStrokes,
-    this.selectionRect,
-    this.currentImage,
-    this.imagePosition,
-    this.imageSize,
-    required this.rotationAngle,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (eraserPosition != null) {
-      final paint = Paint()
-        ..color = Colors.red.withOpacity(0.3)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2;
-
-      canvas.drawCircle(
-        eraserPosition!,
-        eraserSize * 2,
-        paint..style = PaintingStyle.stroke,
-      );
-
-      canvas.drawCircle(
-        eraserPosition!,
-        eraserSize / 2,
-        paint
-          ..style = PaintingStyle.fill
-          ..color = Colors.red.withOpacity(0.1),
-      );
-    }
-    // 计算实际缩放比例，确保完全贴合
-    final scaleX = screenSize.width / pageSize.width;
-    final scaleY = screenSize.height / pageSize.height;
-
-    // 绘制调试边框
-    final debugPaint = Paint()
-      ..color = Colors.red
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
-
-    // 绘制缩放前的边框（屏幕坐标系）
-    canvas.drawRect(Offset.zero & size, debugPaint);
-
-    // 添加一个网格来显示缩放
-    final gridPaint = Paint()
-      ..color = Colors.blue.withOpacity(0.2)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.5;
-
-    // 绘制网格（每100像素一条线）
-    for (double i = 0; i < size.width; i += 100) {
-      canvas.drawLine(Offset(i, 0), Offset(i, size.height), gridPaint);
-    }
-    for (double i = 0; i < size.height; i += 100) {
-      canvas.drawLine(Offset(0, i), Offset(size.width, i), gridPaint);
-    }
-
-    // 应用缩放，使用实际的缩放比例
-    canvas.scale(scaleX, scaleY);
-
-    // 绘制缩放后的边框（PDF坐标系）
-    final pdfDebugPaint = Paint()
-      ..color = Colors.green.withOpacity(0.3)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0 / scaleX;
-
-    canvas.drawRect(Offset.zero & pageSize, pdfDebugPaint);
-
-    // 绘制所有笔画
-    for (final stroke in strokes) {
-      if (stroke.tool.type != StrokeType.lasso) {
-        // 不绘制套索工具的路径
-        _paintStroke(canvas, stroke);
-      }
-    }
-
-    // 添加坐标信息
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text:
-            'Scale: ${scaleX.toStringAsFixed(2)} x ${scaleY.toStringAsFixed(2)}\n'
-            'Size: ${screenSize.width.toStringAsFixed(1)} x ${screenSize.height.toStringAsFixed(1)}\n'
-            'PDF Size: ${pageSize.width.toStringAsFixed(1)} x ${pageSize.height.toStringAsFixed(1)}',
-        style: TextStyle(
-          color: Colors.red,
-          fontSize: 12 / scaleX,
-          backgroundColor: Colors.white.withOpacity(0.8),
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-    textPainter.layout();
-    textPainter.paint(canvas, Offset(10 / scaleX, 10 / scaleY));
-
-    // 绘制套索选择区域
-    // print('lassopath $lassoPath');
-    if (lassoPath != null) {
-      final xlassoPaint = Paint()
-        ..color = Colors.blue.withOpacity(0.2)
-        ..style = PaintingStyle.fill;
-      canvas.drawPath(lassoPath!, xlassoPaint);
-
-      final lassoStrokePaint = Paint()
-        ..color = Colors.blue
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.0;
-      canvas.drawPath(lassoPath!, lassoStrokePaint);
-    }
-
-    // 绘制选中效果
-    for (final stroke in selectedStrokes) {
-      final selectedPaint = Paint()
-        ..color = Colors.blue.withOpacity(0.2)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = stroke.paint.strokeWidth + 4;
-      _paintStroke(canvas, stroke);
-    }
-
-    // 绘制选择框
-    if (selectionRect != null) {
-      canvas.save();
-
-      // 应用旋转变换
-      canvas.translate(selectionRect!.center.dx, selectionRect!.center.dy);
-      canvas.rotate(rotationAngle);
-      canvas.translate(-selectionRect!.center.dx, -selectionRect!.center.dy);
-
-      final selectionPaint = Paint()
-        ..color = Colors.blue
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.0;
-
-      // 绘制主矩形
-      canvas.drawRect(selectionRect!, selectionPaint);
-
-      // 绘制控制点
-      final controlPoints = [
-        selectionRect!.topLeft,
-        selectionRect!.topRight,
-        selectionRect!.bottomLeft,
-        selectionRect!.bottomRight,
-      ];
-
-      // 绘制旋转控制点
-      final rotatePoint = Offset(
-        selectionRect!.center.dx,
-        selectionRect!.top - 30,
-      );
-
-      // 绘制旋转控制点到矩形顶边的连接线
-      canvas.drawLine(
-        Offset(selectionRect!.center.dx, selectionRect!.top),
-        rotatePoint,
-        selectionPaint,
-      );
-
-      // 绘制所有控制点
-      final allPoints = [...controlPoints, rotatePoint];
-      for (var point in allPoints) {
-        canvas.drawCircle(
-          point,
-          4.0,
-          Paint()
-            ..color = Colors.white
-            ..style = PaintingStyle.fill,
-        );
-        canvas.drawCircle(
-          point,
-          4.0,
-          Paint()
-            ..color = Colors.blue
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.0,
-        );
-      }
-
-      canvas.restore();
-
-      // 如果有选中的笔画，也需要应用相同的变换
-      if (selectedStrokes.isNotEmpty) {
-        canvas.save();
-        canvas.translate(selectionRect!.center.dx, selectionRect!.center.dy);
-        canvas.rotate(rotationAngle);
-        canvas.translate(-selectionRect!.center.dx, -selectionRect!.center.dy);
-
-        for (final stroke in selectedStrokes) {
-          final selectedPaint = Paint()
-            ..color = Colors.blue.withOpacity(0.2)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = stroke.paint.strokeWidth + 4;
-          _paintStroke(canvas, stroke);
-        }
-
-        canvas.restore();
-      }
-    }
-
-    // 绘制图片
-    if (currentImage != null && imagePosition != null && imageSize != null) {
-      final rect = Rect.fromLTWH(
-        imagePosition!.dx * scale,
-        imagePosition!.dy * scale,
-        imageSize!.width * scale,
-        imageSize!.height * scale,
-      );
-      canvas.drawImageRect(
-        currentImage!,
-        Rect.fromLTWH(0, 0, currentImage!.width.toDouble(),
-            currentImage!.height.toDouble()),
-        rect,
-        Paint(),
-      );
-    }
-  }
-
-  void _paintStroke(Canvas canvas, Stroke stroke) {
-    if (stroke.points.isEmpty) return;
-
-    if (stroke.tool.type == StrokeType.marker) {
-      final path = Path();
-      path.moveTo(stroke.points[0].x.toDouble(), stroke.points[0].y.toDouble());
-
-      for (var i = 1; i < stroke.points.length; i++) {
-        path.lineTo(
-          stroke.points[i].x.toDouble(),
-          stroke.points[i].y.toDouble(),
-        );
-      }
-
-      canvas.drawPath(path, stroke.paint);
-    } else if (stroke.tool.type == StrokeType.pen) {
-      final path = Path();
-      path.moveTo(stroke.points[0].x.toDouble(), stroke.points[0].y.toDouble());
-
-      for (var i = 1; i < stroke.points.length; i++) {
-        path.lineTo(
-          stroke.points[i].x.toDouble(),
-          stroke.points[i].y.toDouble(),
-        );
-      }
-
-      canvas.drawPath(path, stroke.paint);
-    } else if (stroke.tool.type == StrokeType.shape) {
-      final shapeTool = stroke.tool as ShapeTool;
-      switch (shapeTool.shapeType) {
-        case ShapeType.rectangle:
-          final rect = Rect.fromPoints(
-            Offset(
-                stroke.points[0].x.toDouble(), stroke.points[0].y.toDouble()),
-            Offset(stroke.points.last.x.toDouble(),
-                stroke.points.last.y.toDouble()),
-          );
-          // 先绘制填充
-          if (shapeTool.fillPaint != null) {
-            canvas.drawRect(rect, shapeTool.fillPaint!);
-          }
-          // 再绘制边框
-          canvas.drawRect(rect, stroke.paint);
-          break;
-
-        case ShapeType.circle:
-          final rect = Rect.fromPoints(
-            Offset(
-                stroke.points[0].x.toDouble(), stroke.points[0].y.toDouble()),
-            Offset(stroke.points.last.x.toDouble(),
-                stroke.points.last.y.toDouble()),
-          );
-          if (shapeTool.fillPaint != null) {
-            canvas.drawOval(rect, shapeTool.fillPaint!);
-          }
-          canvas.drawOval(rect, stroke.paint);
-          break;
-
-        case ShapeType.triangle:
-          final path = Path();
-          final start = Offset(
-              stroke.points[0].x.toDouble(), stroke.points[0].y.toDouble());
-          final end = Offset(
-              stroke.points.last.x.toDouble(), stroke.points.last.y.toDouble());
-          final mid = Offset((start.dx + end.dx) / 2, start.dy);
-
-          path.moveTo(mid.dx, start.dy);
-          path.lineTo(end.dx, end.dy);
-          path.lineTo(start.dx, end.dy);
-          path.close();
-
-          if (shapeTool.fillPaint != null) {
-            canvas.drawPath(path, shapeTool.fillPaint!);
-          }
-          canvas.drawPath(path, stroke.paint);
-          break;
-
-        case ShapeType.line:
-          canvas.drawLine(
-            Offset(
-                stroke.points[0].x.toDouble(), stroke.points[0].y.toDouble()),
-            Offset(stroke.points.last.x.toDouble(),
-                stroke.points.last.y.toDouble()),
-            stroke.paint,
-          );
-          break;
-
-        case ShapeType.arrow:
-          final start = Offset(
-              stroke.points[0].x.toDouble(), stroke.points[0].y.toDouble());
-          final end = Offset(
-              stroke.points.last.x.toDouble(), stroke.points.last.y.toDouble());
-
-          // 绘制主线
-          canvas.drawLine(start, end, stroke.paint);
-
-          // 计算箭头
-          final angle = atan2(end.dy - start.dy, end.dx - start.dx);
-          final arrowLength = 20.0; // 箭头长度
-          final arrowAngle = pi / 6; // 箭头角度 (30度)
-
-          final path = Path();
-          path.moveTo(end.dx, end.dy);
-          path.lineTo(
-            end.dx - arrowLength * cos(angle - arrowAngle),
-            end.dy - arrowLength * sin(angle - arrowAngle),
-          );
-          path.moveTo(end.dx, end.dy);
-          path.lineTo(
-            end.dx - arrowLength * cos(angle + arrowAngle),
-            end.dy - arrowLength * sin(angle + arrowAngle),
-          );
-
-          canvas.drawPath(path, stroke.paint);
-          break;
-
-        case ShapeType.star:
-          final center = Offset((stroke.points[0].x + stroke.points.last.x) / 2,
-              (stroke.points[0].y + stroke.points.last.y) / 2);
-          final radius = center.dx - stroke.points[0].x;
-
-          final path = Path();
-          for (int i = 0; i < 5; i++) {
-            double angle = 2 * pi * i / 5 - pi / 2;
-            double x = center.dx + radius * cos(angle);
-            double y = center.dy + radius * sin(angle);
-            if (i == 0)
-              path.moveTo(x, y);
-            else
-              path.lineTo(x, y);
-
-            angle += pi / 5;
-            x = center.dx + (radius / 2) * cos(angle);
-            y = center.dy + (radius / 2) * sin(angle);
-            path.lineTo(x, y);
-          }
-          path.close();
-          canvas.drawPath(path, stroke.paint);
-          break;
-        default:
-          break;
-      }
-    } else if (stroke.tool.type == StrokeType.text) {
-      final textTool = stroke.tool as TextTool;
-      final textSpan = TextSpan(
-        text: textTool.text,
-        style: TextStyle(
-          color: textTool.color,
-          fontSize: textTool.fontSize,
-        ),
-      );
-
-      final textPainter = TextPainter(
-        text: textSpan,
-        textDirection: TextDirection.ltr,
-      );
-
-      textPainter.layout();
-      final position = Offset(
-        stroke.points[0].x.toDouble(),
-        stroke.points[0].y.toDouble(),
-      );
-      textPainter.paint(canvas, position);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

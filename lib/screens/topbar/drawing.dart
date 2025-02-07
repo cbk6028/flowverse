@@ -1,7 +1,7 @@
 part of 'topbar.dart';
 
 class DrawingButton extends StatelessWidget {
-  final StrokeType strokeType;
+  final ToolType strokeType;
   final GlobalKey penButtonKey = GlobalKey();
   DrawingButton({super.key, required this.strokeType});
 
@@ -72,13 +72,13 @@ void _showMenu(GlobalKey buttonKey, BuildContext context, PopupMenuItem item) {
 }
 
 PopupMenuItem _getPopupMenuItem(
-    StrokeType strokeType, DrawingProvider drawingProvider) {
+    ToolType strokeType, DrawingProvider drawingProvider) {
   switch (strokeType) {
-    case StrokeType.pen:
+    case ToolType.pen:
       return _getPenItem(drawingProvider);
-    case StrokeType.shape:
+    case ToolType.shape:
       return _getShapeItem(drawingProvider);
-    case StrokeType.marker:
+    case ToolType.marker:
       return _getMarkerItem(drawingProvider);
 
     default:

@@ -1,4 +1,6 @@
+import 'package:flowverse/models/shape.dart';
 import 'package:flowverse/models/stroke.dart';
+import 'package:flowverse/models/tool.dart';
 import 'package:flowverse/provider/drawing_provider.dart';
 import 'package:flowverse/view_models/marker_vm.dart';
 import 'package:flowverse/widgets/color_picker.dart';
@@ -130,104 +132,107 @@ class _TopBarState extends State<TopBar> {
                 // strikethrough
                 const MarkupButton(markerType: MarkerType.strikethrough),
 
-                // // 绘制
-                // DrawingButton(
-                //   strokeType: StrokeType.pen,
-                // ),
-                // // 荧光笔
-                // DrawingButton(
-                //   strokeType: StrokeType.marker,
-                // ),
+                // 绘制
+                DrawingButton(
+                  strokeType: ToolType.pen,
+                ),
+                // 荧光笔
+                DrawingButton(
+                  strokeType: ToolType.marker,
+                ),
 
-                // // 形状
-                // DrawingButton(
-                //   strokeType: StrokeType.shape,
-                // ),
+                // 形状
+                DrawingButton(
+                  strokeType: ToolType.shape,
+                ),
+                CupertinoButton(
+                  key: penButtonKey,
+                  padding: const EdgeInsets.all(12.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(8.0),
+                    decoration: BoxDecoration(
+                      color: drawingProvider.strokeType == ToolType.eraser
+                          ? Colors.blue.withOpacity(0.1)
+                          : Colors.grey.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      PhosphorIconsLight.eraser,
+                      color: drawingProvider.strokeType == ToolType.eraser
+                          ? Colors.blue
+                          : Colors.grey,
+                      size: 20,
+                    ),
+                  ),
+                  onPressed: () {
+                    if (drawingProvider.strokeType == ToolType.eraser) {
+                      // 已激活状态：显示设置菜单
+                      _showMenu(penButtonKey, context, PopupMenuItem(
+                        child: StatefulBuilder(builder:
+                            (BuildContext context, StateSetter setState) {
+                          return Container(
+                            width: 200,
+                            padding: const EdgeInsets.all(8),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // 粗细调节
+                                Text(
+                                    '橡皮大小: ${drawingProvider.eraserSize.toStringAsFixed(1)}',
+                                    style: const TextStyle(fontSize: 12)),
+                                Slider(
+                                  value: drawingProvider.eraserSize,
+                                  min: 4,
+                                  max: 40,
+                                  divisions: 9,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      drawingProvider.setEraserSize(value);
+                                    });
+                                  },
+                                ),
+                                // const SizedBox(height: 12),
+                                // 颜色选择器
+                                // const ColorPicker(),
+                              ],
+                            ),
+                          );
+                        }),
+                      ));
+                    } else {
+                      // 未激活状态：激活笔工具
+                      // drawingProvider.toggleEraserMode();
+                      drawingProvider.setStrokeType(ToolType.eraser);
+                    }
+                  },
+                ),
 
-                // // 擦除按钮
-                // CupertinoButton(
-                //   padding: const EdgeInsets.all(12.0),
-                //   child: Container(
-                //     padding: const EdgeInsets.all(8.0),
-                //     decoration: BoxDecoration(
-                //       color: drawingProvider.isEraserMode
-                //           ? Colors.blue.withOpacity(0.1)
-                //           : Colors.grey.withOpacity(0.1),
-                //       borderRadius: BorderRadius.circular(8),
-                //     ),
-                //     child: Icon(
-                //       PhosphorIconsLight.eraser,
-                //       color: drawingProvider.isEraserMode
-                //           ? Colors.blue
-                //           : Colors.grey,
-                //       size: 20,
-                //     ),
-                //   ),
-                //   onPressed: () {
-                //     drawingProvider.toggleEraserMode();
-                //   },
-                // ),
-                // 在 topbar.dart 中添加橡皮尺寸控制UI
-                // PopupMenuButton<double>(
-                //   itemBuilder: (context) => [
-                //     PopupMenuItem(
-                //       child: Column(
-                //         children: [
-                //           Text(
-                //               '橡皮尺寸: ${drawingProvider.strokeWidth.toInt()}px'),
-                //           Row(
-                //             children: [
-                //               IconButton(
-                //                 icon: Icon(Icons.remove),
-                //                 onPressed: drawingProvider.decreaseEraserSize,
-                //               ),
-                //               Expanded(
-                //                 child: Slider(
-                //                   value: drawingProvider.strokeWidth,
-                //                   min: 4,
-                //                   max: 40,
-                //                   onChanged: (v) =>
-                //                       drawingProvider.setStrokeWidth(v),
-                //                 ),
-                //               ),
-                //               IconButton(
-                //                 icon: Icon(Icons.add),
-                //                 onPressed: drawingProvider.increaseEraserSize,
-                //               ),
-                //             ],
-                //           )
-                //         ],
-                //       ),
-                //     )
-                //   ],
-                // ),
-
-                // // 添加套索按钮
-                // CupertinoButton(
-                //   padding: const EdgeInsets.all(12.0),
-                //   child: Container(
-                //     padding: const EdgeInsets.all(8.0),
-                //     decoration: BoxDecoration(
-                //       color: drawingProvider.isDrawingMode &&
-                //               drawingProvider.strokeType == StrokeType.lasso
-                //           ? Colors.blue.withOpacity(0.1)
-                //           : Colors.grey.withOpacity(0.1),
-                //       borderRadius: BorderRadius.circular(8),
-                //     ),
-                //     child: Icon(
-                //       PhosphorIconsLight.selection,
-                //       color: drawingProvider.isDrawingMode &&
-                //               drawingProvider.strokeType == StrokeType.lasso
-                //           ? Colors.blue
-                //           : Colors.grey,
-                //       size: 20,
-                //     ),
-                //   ),
-                //   onPressed: () {
-                //     drawingProvider.setStrokeType(StrokeType.lasso);
-                //     drawingProvider.setDrawingMode(true);
-                //   },
-                // ),
+                // 添加套索按钮
+                CupertinoButton(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(8.0),
+                    decoration: BoxDecoration(
+                      color: drawingProvider.isDrawingMode &&
+                              drawingProvider.strokeType == ToolType.lasso
+                          ? Colors.blue.withOpacity(0.1)
+                          : Colors.grey.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      PhosphorIconsLight.selection,
+                      color: drawingProvider.isDrawingMode &&
+                              drawingProvider.strokeType == ToolType.lasso
+                          ? Colors.blue
+                          : Colors.grey,
+                      size: 20,
+                    ),
+                  ),
+                  onPressed: () {
+                    drawingProvider.setStrokeType(ToolType.lasso);
+                    drawingProvider.setDrawingMode(true);
+                  },
+                ),
                 // 在工具栏按钮组中添加打字机按钮
                 // CupertinoButton(
                 //   padding: const EdgeInsets.all(12.0),
@@ -343,41 +348,6 @@ class _TopBarState extends State<TopBar> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUnderlineStyleButton(
-    MarkerViewModel markerVm,
-    UnderlineStyle style,
-    String tooltip,
-    String symbol,
-    VoidCallback onUpdate,
-  ) {
-    final isSelected = markerVm.underlineStyle == style;
-    return Tooltip(
-      message: tooltip,
-      child: GestureDetector(
-        onTap: () {
-          markerVm.setUnderlineStyle(style);
-          onUpdate();
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: isSelected ? markerVm.underlineColor.withOpacity(0.1) : null,
-            borderRadius: BorderRadius.circular(4),
-            border:
-                isSelected ? Border.all(color: markerVm.underlineColor) : null,
-          ),
-          child: Text(
-            symbol,
-            style: TextStyle(
-              color: isSelected ? markerVm.underlineColor : Colors.grey,
-              fontSize: 12,
-            ),
-          ),
         ),
       ),
     );

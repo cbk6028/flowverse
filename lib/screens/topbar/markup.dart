@@ -30,6 +30,48 @@ class MarkupButton extends StatelessWidget {
                               setState(() {});
                             },
                           ),
+                    markerType == MarkerType.underline
+                        ? Row(
+                            children: [
+                              _buildUnderlineStyleButton(
+                                markerVm,
+                                UnderlineStyle.solid,
+                                'Solid',
+                                '——',
+                                () {
+                                  setState(() {});
+                                },
+                              ),
+                              _buildUnderlineStyleButton(
+                                markerVm,
+                                UnderlineStyle.dashed,
+                                'Dashed',
+                                '----',
+                                () {
+                                  setState(() {});
+                                },
+                              ),
+                              _buildUnderlineStyleButton(
+                                markerVm,
+                                UnderlineStyle.dotted,
+                                'Dotted',
+                                '.....',
+                                () {
+                                  setState(() {});
+                                },
+                              ),
+                              _buildUnderlineStyleButton(
+                                markerVm,
+                                UnderlineStyle.wavy,
+                                'Wavy',
+                                '~~~~',
+                                () {
+                                  setState(() {});
+                                },
+                              ),
+                            ],
+                          )
+                        : Container(),
                     const SizedBox(height: 12),
                     // 现有的颜色选择器
                     ColorPicker(
@@ -59,6 +101,41 @@ class MarkupButton extends StatelessWidget {
             markerVm.getMarkupIcon(markerType),
             color: markerVm.getMarkupColor(markerType),
             size: 20,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUnderlineStyleButton(
+    MarkerViewModel markerVm,
+    UnderlineStyle style,
+    String tooltip,
+    String symbol,
+    VoidCallback onUpdate,
+  ) {
+    final isSelected = markerVm.underlineStyle == style;
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: () {
+          markerVm.setUnderlineStyle(style);
+          onUpdate();
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: isSelected ? markerVm.underlineColor.withOpacity(0.1) : null,
+            borderRadius: BorderRadius.circular(4),
+            border:
+                isSelected ? Border.all(color: markerVm.underlineColor) : null,
+          ),
+          child: Text(
+            symbol,
+            style: TextStyle(
+              color: isSelected ? markerVm.underlineColor : Colors.grey,
+              fontSize: 12,
+            ),
           ),
         ),
       ),

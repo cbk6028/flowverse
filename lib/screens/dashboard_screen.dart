@@ -1,12 +1,15 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flowverse/models/bookshelf.dart';
+import 'package:flowverse/models/sort_option.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import '../utils/file_utils.dart';
 
 import 'reader_screen.dart'; // 导入阅读器页面
 import '../view_models/dashboard_vm.dart';
@@ -71,94 +74,132 @@ class DashboardScreenInnerState extends State<DashboardScreenInner> {
   Widget build(BuildContext context) {
     final dashboardState = context.watch<DashboardViewModel>();
 
-    return CupertinoPageScaffold(
-      child: Row(
-        children: [
-          // 左侧选项
-          Container(
-            width: 200,
-            color: CupertinoColors.systemGrey5,
-            child: CupertinoScrollbar(
-              child: ListView(
-                children: [
-                  CupertinoListTile(
-                    leading: Icon(PhosphorIconsLight.house),
-                    title: Text('主页'),
-                    onTap: () {
-                      // 处理主页点击事件
-                    },
+    return Consumer<DashboardViewModel>(
+      builder: (context, dashboardVm, child) {
+        return CupertinoPageScaffold(
+          navigationBar: CupertinoNavigationBar(
+            middle: Text('书架'),
+            trailing: CupertinoButton(
+              padding: EdgeInsets.zero,
+              child: Icon(PhosphorIconsLight.sortAscending),
+              onPressed: () {
+                showCupertinoModalPopup(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return CupertinoActionSheet(
+                      title: Text('排序方式'),
+                      message: Text('当前排序：${dashboardVm.currentSortOption.label} (${dashboardVm.sortDirection.label})'),
+                      actions: SortOption.values.map((option) {
+                        return CupertinoActionSheetAction(
+                          child: Text(option.label),
+                          onPressed: () {
+                            dashboardVm.setSortOption(option);
+                            Navigator.pop(context);
+                          },
+                        );
+                      }).toList(),
+                      cancelButton: CupertinoActionSheetAction(
+                        isDestructiveAction: true,
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        child: Text('取消'),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          child: Row(
+            children: [
+              // 左侧选项
+              Container(
+                width: 200,
+                color: CupertinoColors.systemGrey5,
+                child: CupertinoScrollbar(
+                  child: ListView(
+                    children: [
+                      CupertinoListTile(
+                        leading: Icon(PhosphorIconsLight.house),
+                        title: Text('主页'),
+                        onTap: () {
+                          // 处理主页点击事件
+                        },
+                      ),
+                      CupertinoListTile(
+                        leading: Icon(PhosphorIconsLight.book),
+                        title: Text('PDF 工具集'),
+                        onTap: () {
+                          // 处理书架点击事件
+                        },
+                      ),
+                      CupertinoListTile(
+                        leading: Icon(PhosphorIconsLight.gear),
+                        title: Text('设置'),
+                        onTap: () {
+                          // 处理设置点击事件
+                        },
+                      ),
+                      // 可以添加更多选项
+                    ],
                   ),
-                  CupertinoListTile(
-                    leading: Icon(PhosphorIconsLight.book),
-                    title: Text('PDF 工具集'),
-                    onTap: () {
-                      // 处理书架点击事件
-                    },
-                  ),
-                  CupertinoListTile(
-                    leading: Icon(PhosphorIconsLight.gear),
-                    title: Text('设置'),
-                    onTap: () {
-                      // 处理设置点击事件
-                    },
-                  ),
-                  // 可以添加更多选项
-                ],
+                ),
               ),
-            ),
-          ),
-          // 右侧书架
-          Expanded(
-            child: Stack(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: BookshelfWidget(),
-                ),
-                // 浮动的"添加"按钮
-                Positioned(
-                  right: 20,
-                  bottom: 20,
-                  child: CupertinoButton(
-                    padding: EdgeInsets.all(16),
-                    color: CupertinoColors.activeBlue,
-                    borderRadius: BorderRadius.circular(30),
-                    child: Icon(
-                      PhosphorIconsLight.plus,
-                      color: CupertinoColors.white,
-                      size: 28,
+              // 右侧书架
+              Expanded(
+                child: Stack(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: BookshelfWidget(),
                     ),
-                    onPressed: () async {
-                      // 打开文件选择器
-                      FilePickerResult? result =
-                          await FilePicker.platform.pickFiles(
-                        type: FileType.custom,
-                        allowedExtensions: ['pdf'], // 根据需要添加允许的文件类型
-                      );
-                      if (result != null && result.files.single.path != null) {
-                        String filePath = result.files.single.path!;
-                        String fileName =
-                            result.files.single.name.split('.').first;
-                        print(filePath);
-                        // 检查文件是否已经存在
-                        if (dashboardState.isBookExists(filePath)) {
-                          // 显示提示对话框
-                          await _showAlreadyExistsDialog(fileName);
-                        } else {
-                          debugPrint('添加成功');
-                          final int id = dashboardState.books.length;
-                          dashboardState.addBook(
-                              Book(id + 1, fileName, filePath, '')); // 存储文件路径
-                        }
-                      }
-                    },
-                  ),
+                    // 浮动的"添加"按钮
+                    Positioned(
+                      right: 20,
+                      bottom: 20,
+                      child: CupertinoButton(
+                        padding: EdgeInsets.all(16),
+                        color: CupertinoColors.activeBlue,
+                        borderRadius: BorderRadius.circular(30),
+                        child: Icon(
+                          PhosphorIconsLight.plus,
+                          color: CupertinoColors.white,
+                          size: 28,
+                        ),
+                        onPressed: () async {
+                          // 打开文件选择器
+                          FilePickerResult? result =
+                              await FilePicker.platform.pickFiles(
+                            type: FileType.custom,
+                            allowedExtensions: ['pdf'], // 根据需要添加允许的文件类型
+                          );
+                          if (result != null && result.files.single.path != null) {
+                            String filePath = result.files.single.path!;
+                            String fileName =
+                                result.files.single.name.split('.').first;
+                            print(filePath);
+                            // 检查文件是否已经存在
+                            if (dashboardState.isBookExists(filePath)) {
+                              // 显示提示对话框
+                              await _showAlreadyExistsDialog(fileName);
+                            } else {
+                              debugPrint('添加成功');
+                              final int id = dashboardState.books.length;
+                              dashboardState.addBook(
+                                  Book(id + 1, fileName, filePath, '')); // 存储文件路径
+                            }
+                          }
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -196,21 +237,22 @@ class CupertinoListTile extends StatelessWidget {
 // ##################################################################
 // 书籍封面
 
-class PdfThumbnail extends StatefulWidget {
+class Cover extends StatefulWidget {
   final String filePath;
 
-  const PdfThumbnail({Key? key, required this.filePath}) : super(key: key);
+  const Cover({Key? key, required this.filePath}) : super(key: key);
 
   @override
-  State<PdfThumbnail> createState() => _PdfThumbnailState();
+  State<Cover> createState() => _CoverState();
 }
 
-class _PdfThumbnailState extends State<PdfThumbnail> {
+class _CoverState extends State<Cover> {
   PdfDocument? _document;
   PdfPage? _page;
   bool _isLoading = true;
   String? _error;
   ui.Image? _thumbnail;
+  String? _fileHash;
 
   @override
   void initState() {
@@ -220,6 +262,24 @@ class _PdfThumbnailState extends State<PdfThumbnail> {
 
   Future<void> _loadThumbnail() async {
     try {
+      // 计算文件哈希
+      _fileHash = await FileUtils.calculateFileHash(widget.filePath);
+      
+      // 检查缓存
+      final cachedImage = await DefaultCacheManager().getFileFromCache(_fileHash!);
+      if (cachedImage != null && cachedImage.file.existsSync()) {
+        final bytes = await cachedImage.file.readAsBytes();
+        final codec = await ui.instantiateImageCodec(bytes);
+        final frameInfo = await codec.getNextFrame();
+        _thumbnail = frameInfo.image;
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+
       _document = await PdfDocument.openFile(widget.filePath);
       _page = await _document!.pages[0];
 
@@ -232,15 +292,18 @@ class _PdfThumbnailState extends State<PdfThumbnail> {
         fullHeight: targetHeight,
       );
 
-      // if (pdfImage != null) {
-      //   final bytes = pdfImage.pixels;
-      //   final codec = await ui.instantiateImageCodec(bytes);
-      //   final frameInfo = await codec.getNextFrame();
-      //   _thumbnail = frameInfo.image;
-      //   pdfImage.dispose();
-      // }
-
       _thumbnail = await pdfImage?.createImage();
+
+      // 缓存缩略图
+      if (_thumbnail != null) {
+        final byteData = await _thumbnail!.toByteData(format: ui.ImageByteFormat.png);
+        if (byteData != null) {
+          await DefaultCacheManager().putFile(
+            _fileHash!,
+            byteData.buffer.asUint8List(),
+          );
+        }
+      }
 
       if (mounted) {
         setState(() {
@@ -375,7 +438,8 @@ class BookshelfWidget extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(8),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: CupertinoColors.systemGrey.withOpacity(0.1),
+                                    color: CupertinoColors.systemGrey
+                                        .withOpacity(0.1),
                                     blurRadius: 4,
                                     offset: Offset(0, 2),
                                   ),
@@ -383,7 +447,7 @@ class BookshelfWidget extends StatelessWidget {
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
-                                child: PdfThumbnail(filePath: filePath),
+                                child: Cover(filePath: filePath),
                               ),
                             ),
                           ),
@@ -416,21 +480,20 @@ class BookshelfWidget extends StatelessWidget {
                               .overlay!
                               .context
                               .findRenderObject() as RenderBox;
-                          
+
                           // 获取按钮相对于 Overlay 的位置
-                          final buttonPosition = button.localToGlobal(
-                            Offset.zero,
-                            ancestor: overlay
-                          );
-                          
+                          final buttonPosition = button
+                              .localToGlobal(Offset.zero, ancestor: overlay);
+
                           // 获取按钮的大小
                           final buttonSize = button.size;
-                          
+
                           // 计算菜单位置
                           final menuPosition = RelativeRect.fromRect(
                             Rect.fromPoints(
                               buttonPosition,
-                              buttonPosition.translate(buttonSize.width, buttonSize.height),
+                              buttonPosition.translate(
+                                  buttonSize.width, buttonSize.height),
                             ),
                             Offset.zero & overlay.size,
                           );
@@ -489,21 +552,26 @@ class BookshelfWidget extends StatelessWidget {
                                           if (!snapshot.hasData) {
                                             return const CupertinoActivityIndicator();
                                           }
-                                          
+
                                           final stat = snapshot.data!;
                                           final fileSize = stat.size;
-                                          final modified = stat.modified.toLocal();
-                                          
+                                          final modified =
+                                              stat.modified.toLocal();
+
                                           return Column(
                                             children: [
                                               const SizedBox(height: 8),
                                               Row(
                                                 children: [
                                                   const Text('文件名：',
-                                                      style: TextStyle(fontWeight: FontWeight.bold)),
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold)),
                                                   Expanded(
                                                     child: Text(book.name,
-                                                        style: const TextStyle(color: CupertinoColors.systemGrey)),
+                                                        style: const TextStyle(
+                                                            color: CupertinoColors
+                                                                .systemGrey)),
                                                   ),
                                                 ],
                                               ),
@@ -511,10 +579,14 @@ class BookshelfWidget extends StatelessWidget {
                                               Row(
                                                 children: [
                                                   const Text('路径：',
-                                                      style: TextStyle(fontWeight: FontWeight.bold)),
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold)),
                                                   Expanded(
                                                     child: Text(book.path,
-                                                        style: const TextStyle(color: CupertinoColors.systemGrey)),
+                                                        style: const TextStyle(
+                                                            color: CupertinoColors
+                                                                .systemGrey)),
                                                   ),
                                                 ],
                                               ),
@@ -522,10 +594,14 @@ class BookshelfWidget extends StatelessWidget {
                                               Row(
                                                 children: [
                                                   const Text('大小：',
-                                                      style: TextStyle(fontWeight: FontWeight.bold)),
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold)),
                                                   Text(
                                                     _formatFileSize(fileSize),
-                                                    style: const TextStyle(color: CupertinoColors.systemGrey),
+                                                    style: const TextStyle(
+                                                        color: CupertinoColors
+                                                            .systemGrey),
                                                   ),
                                                 ],
                                               ),
@@ -533,10 +609,14 @@ class BookshelfWidget extends StatelessWidget {
                                               Row(
                                                 children: [
                                                   const Text('修改时间：',
-                                                      style: TextStyle(fontWeight: FontWeight.bold)),
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold)),
                                                   Text(
                                                     '${modified.year}-${modified.month.toString().padLeft(2, '0')}-${modified.day.toString().padLeft(2, '0')} ${modified.hour.toString().padLeft(2, '0')}:${modified.minute.toString().padLeft(2, '0')}',
-                                                    style: const TextStyle(color: CupertinoColors.systemGrey),
+                                                    style: const TextStyle(
+                                                        color: CupertinoColors
+                                                            .systemGrey),
                                                   ),
                                                 ],
                                               ),
@@ -547,7 +627,8 @@ class BookshelfWidget extends StatelessWidget {
                                       actions: [
                                         CupertinoDialogAction(
                                           child: const Text('确定'),
-                                          onPressed: () => Navigator.pop(context),
+                                          onPressed: () =>
+                                              Navigator.pop(context),
                                         ),
                                       ],
                                     ),
@@ -570,7 +651,8 @@ class BookshelfWidget extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: CupertinoColors.systemGrey.withOpacity(0.2),
+                                color:
+                                    CupertinoColors.systemGrey.withOpacity(0.2),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
                               ),

@@ -9,14 +9,10 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:simple_painter/simple_painter.dart';
-
 class MarkerViewModel extends ChangeNotifier {
-  // final readerVm;
-
   MarkerViewModel();
 
-  PainterController? painterController = PainterController();
+  // PainterController? painterController = PainterController();
 
   Map<PageNumber, List<Stroke>> strokes = {};
   Map<PageNumber, List<Marker>> markers = {};
@@ -37,10 +33,10 @@ class MarkerViewModel extends ChangeNotifier {
   // 添加粗细属性
   double _underlineWidth = 0.8;
   double _strikethroughWidth = 0.8;
-  
+
   double get underlineWidth => _underlineWidth;
   double get strikethroughWidth => _strikethroughWidth;
-  
+
   double getMarkupWidth(MarkerType type) {
     switch (type) {
       case MarkerType.underline:
@@ -63,7 +59,7 @@ class MarkerViewModel extends ChangeNotifier {
     _underlineWidth = width;
     notifyListeners();
   }
-  
+
   void setStrikethroughWidth(double width) {
     _strikethroughWidth = width;
     notifyListeners();
@@ -108,26 +104,25 @@ class MarkerViewModel extends ChangeNotifier {
         break;
 
       case UnderlineStyle.wavy:
-        final waveWidth = 10.0;
+        final waveWidth = 3.0;
         final waveHeight = 2.0;
-        double distance = (end.dx - start.dx);
+        double distance = end.dx - start.dx;
+        int numWaves = (distance / (2 * waveWidth)).floor(); // 计算完整的波浪数
+        double remaining = distance - numWaves * (2 * waveWidth); // 剩余部分
+
         path.moveTo(start.dx, start.dy);
 
-        for (double i = 0; i < distance; i += waveWidth) {
+        for (int i = 0; i < numWaves; i++) {
           path.relativeQuadraticBezierTo(
-            waveWidth / 2,
-            -waveHeight,
-            waveWidth,
-            0,
-          );
-          if (i + waveWidth < distance) {
-            path.relativeQuadraticBezierTo(
-              waveWidth / 2,
-              waveHeight,
-              waveWidth,
-              0,
-            );
-          }
+              waveWidth / 2, -waveHeight, waveWidth, 0);
+          path.relativeQuadraticBezierTo(
+              waveWidth / 2, waveHeight, waveWidth, 0);
+        }
+
+        // 处理剩余的部分，平滑收尾
+        if (remaining > 0) {
+          path.relativeQuadraticBezierTo(
+              remaining / 2, -waveHeight, remaining, 0);
         }
         break;
     }
@@ -136,30 +131,10 @@ class MarkerViewModel extends ChangeNotifier {
   }
 
   // 绘制下划线的方法
-  void drawUnderline(
-      Canvas canvas, Offset start, Offset end, Marker marker) {
-    // final paint = Paint()
-    //   ..color = tool.
-    //   ..style = PaintingStyle.stroke
-    //   ..strokeWidth = 2.0;
+  void drawUnderline(Canvas canvas, Offset start, Offset end, Marker marker) {
     final tool = marker.tool as UnderlineMarkerTool;
     final path = getUnderlinePath(start, end, tool);
     canvas.drawPath(path, marker.paint);
-  }
-
-  set strikethroughColor(Color color) {
-    _strikethroughColor = color;
-    notifyListeners();
-  }
-
-  set highlightColor(Color color) {
-    _highlightColor = color;
-    notifyListeners();
-  }
-
-  set underlineColor(Color color) {
-    _underlineColor = color;
-    notifyListeners();
   }
 
   // 添加新的状态标志
@@ -463,7 +438,8 @@ class MarkerViewModel extends ChangeNotifier {
     for (final marker in lmarkers) {
       // 过滤保存的
       if (marker.ranges == null) {
-        print('${DateTime.now()} DEBUG: Processing marker with ${marker.points.length} points');
+        print(
+            '${DateTime.now()} DEBUG: Processing marker with ${marker.points.length} points');
         final paint = marker.paint;
         final rect = PdfRect(
                 marker.points[0].x as double,
@@ -596,10 +572,11 @@ class MarkerViewModel extends ChangeNotifier {
         _underlineColor = color;
         break;
       case MarkerType.strikethrough:
-        strikethroughColor = color;
+        _strikethroughColor = color;
         break;
     }
-    
+
+    notifyListeners();
   }
 
   getMarkupColor(MarkerType markerType) {
