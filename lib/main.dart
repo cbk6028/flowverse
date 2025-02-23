@@ -1,9 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:window_manager/window_manager.dart';
+// import 'package:window_manager/window_manager.dart';
 
-
-import 'screens/dashboard_screen.dart';
+import 'ui/dashboard/widgets/dashboard_screen.dart';
 
 void main() {
   // ciyueMain();
