@@ -24,6 +24,6 @@ class Sort {
   SortOption option;
   SortDirection direction;
 
-  Map<String, int> _openCounts = {};
-  Map<String, DateTime> _lastReadTimes = {};
+  final Map<String, int> _openCounts = {};
+  final Map<String, DateTime> _lastReadTimes = {};
 }

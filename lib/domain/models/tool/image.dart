@@ -1,8 +1,8 @@
 import 'dart:ui';
-// import 'package:flowverse/view_models/marker_vm.dart';
-import 'package:flowverse/domain/models/tool/tool.dart';
+// import 'package:flov/view_models/marker_vm.dart';
+import 'package:flov/domain/models/tool/tool.dart';
 import 'package:flutter/material.dart';
-import 'package:flowverse/domain/models/tool/stroke.dart';
+import 'package:flov/domain/models/tool/stroke.dart';
 
 
 class ImageTool extends Tool {

@@ -1,19 +1,10 @@
 import 'package:file_picker/file_picker.dart';
+import 'package:flov/domain/models/book/book.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'dart:io';
-// import 'package:printing/printing.dart';
-// import 'package:provider/provider.dart';
-// import 'package:synchronized/extension.dart';
 
-
-// class Marker {
-//   final Color color;
-//   final PdfTextRanges ranges;
-
-//   Marker(this.color, this.ranges);
-// }
 
 class ReaderViewModel extends ChangeNotifier {
   static ReaderViewModel? _instance;
@@ -22,10 +13,8 @@ class ReaderViewModel extends ChangeNotifier {
     return _instance!;
   }
 
-  // late final MarkerVewModel markerVm;
-  // final DictViewModel dictVm = DictViewModel();
-  // late final TopbarViewModel topbarVm;
-  String currentPdfPath = '';  // 添加当前PDF路径
+
+  String currentPdfPath = ''; // 添加当前PDF路径
 
   ReaderViewModel() {
     _instance = this;
@@ -48,7 +37,7 @@ class ReaderViewModel extends ChangeNotifier {
 
   bool _isSearching = false;
   String _searchQuery = '';
-  List<int> _searchResults = [];
+  final List<int> _searchResults = [];
 
   final ScrollController scrollController = ScrollController();
 
@@ -61,7 +50,8 @@ class ReaderViewModel extends ChangeNotifier {
   var isLeftSidebarVisible = false;
 
   final TextEditingController textEditingController = TextEditingController();
-  final GlobalKey<EditableTextState> editableTextKey = GlobalKey<EditableTextState>();
+  final GlobalKey<EditableTextState> editableTextKey =
+      GlobalKey<EditableTextState>();
 
   // 双页模式
   bool _isDoublePageMode = false;
@@ -195,10 +185,10 @@ class ReaderViewModel extends ChangeNotifier {
         context: context,
         builder: (BuildContext context) {
           return CupertinoAlertDialog(
-            content: Text('PDF 已保存到此软件运行目录: $filePath'),
+            content: const Text('PDF 已保存到此软件运行目录: $filePath'),
             actions: [
               CupertinoDialogAction(
-                child: Text('确定'),
+                child: const Text('确定'),
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
@@ -215,7 +205,7 @@ class ReaderViewModel extends ChangeNotifier {
             content: Text('保存失败: $e'),
             actions: [
               CupertinoDialogAction(
-                child: Text('确定'),
+                child: const Text('确定'),
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
@@ -277,7 +267,7 @@ class ReaderViewModel extends ChangeNotifier {
 
   Future<void> setSelectedFile(File file) async {
     selectedFile = file;
-    currentPdfPath = file.path;  // 更新当前PDF路径
+    currentPdfPath = file.path; // 更新当前PDF路径
     notifyListeners();
     await _loadOutline();
   }
@@ -290,15 +280,19 @@ class ReaderViewModel extends ChangeNotifier {
   }
 
   void goToPreviousPage() {
-    int currentPage = pdfViewerController.pageNumber!;
+    if (pdfViewerController.pageNumber != null) {
+      currentPage = pdfViewerController.pageNumber!;
+    }
     int previousPage = currentPage - 1;
     pdfViewerController.goToPage(pageNumber: previousPage);
     notifyListeners();
   }
 
   void goToNextPage() {
-    int? currentPage = pdfViewerController.pageNumber;
-    int nextPage = currentPage! + 1;
+    if (pdfViewerController.pageNumber != null) {
+      currentPage = pdfViewerController.pageNumber!;
+    }
+    int nextPage = currentPage + 1;
     pdfViewerController.goToPage(pageNumber: nextPage);
     notifyListeners();
   }
@@ -317,11 +311,13 @@ class ReaderViewModel extends ChangeNotifier {
 
   // 添加当前页面号的 getter
   int? get currentPageNumber => pdfViewerController.pageNumber;
+  int get totalPages => pdfViewerController.pageCount ?? 0;
 
   // 判断大纲节点是否为当前页面
   bool isCurrentPage(PdfOutlineNode node) {
-    if (node.dest?.pageNumber == null || currentPageNumber == null)
+    if (node.dest?.pageNumber == null || currentPageNumber == null) {
       return false;
+    }
     return node.dest!.pageNumber == currentPageNumber;
   }
 
@@ -330,6 +326,8 @@ class ReaderViewModel extends ChangeNotifier {
   }
 
   String? _selectedTextForTranslation;
+
+  late Book currentBook;
   String? get selectedTextForTranslation => _selectedTextForTranslation;
 
   void showTranslationPanel(String text) {
@@ -341,6 +339,47 @@ class ReaderViewModel extends ChangeNotifier {
   }
 
   void clearSelectedTextForTranslation() {
+    _selectedTextForTranslation = null;
+    notifyListeners();
+  }
+
+  // 添加一个方法来检查控制器是否准备就绪
+  bool get isControllerReady {
+    try {
+      pdfViewerController.pageCount;
+    }catch(e){
+      return false;
+    }
+    return true;
+  }
+
+  // 设置当前页码
+  void setCurrentPage(int page) {
+    currentPage = page;
+    notifyListeners();
+  }
+
+  // 设置总页数
+  void setTotalPages(int count) {
+    // 总页数已经由 pdfViewerController.pageCount 提供
+    notifyListeners();
+  }
+
+  // 设置大纲
+  void setOutline(List<PdfOutlineNode>? outlineNodes) {
+    outline = outlineNodes;
+    if (outline != null) {
+      _initializeOutlineStates(outline!);
+    }
+    notifyListeners();
+  }
+
+  // 清理PDF阅读器状态
+  void clearReaderState() {
+    currentPdfPath = '';
+    currentPage = 1;
+    outline = null;
+    selectedFile = null;
     _selectedTextForTranslation = null;
     notifyListeners();
   }

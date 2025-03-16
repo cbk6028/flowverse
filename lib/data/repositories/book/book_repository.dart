@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:flowverse/domain/models/book/book.dart';
+import 'package:flov/domain/models/book/book.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -39,5 +39,10 @@ class BookRepository {
         debugPrint('保存书架信息失败: $e');
       }
     }
+  }
+
+
+  Future<void> updateBook() async {
+    await loadBooks();
   }
 }

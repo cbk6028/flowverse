@@ -14,9 +14,9 @@ class DrawingButton extends StatelessWidget {
       
       return CupertinoButton(
         key: penButtonKey,
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.all(8.0),
         child: Container(
-          padding: const EdgeInsets.all(8.0),
+          padding: const EdgeInsets.all(4.0),
           decoration: BoxDecoration(
             color: isActive
                 ? drawingProvider.getDrawingColor(strokeType).withOpacity(0.1)
@@ -233,37 +233,37 @@ PopupMenuItem _getShapeItem(DrawingViewModel drawingProvider) {
                 _buildShapeButton(
                   drawingProvider,
                   ShapeType.rectangle,
-                  PhosphorIconsLight.rectangle,
+                  PhosphorIconsRegular.rectangle,
                   setState,
                 ),
                 _buildShapeButton(
                   drawingProvider,
                   ShapeType.circle,
-                  PhosphorIconsLight.circle,
+                  PhosphorIconsRegular.circle,
                   setState,
                 ),
                 _buildShapeButton(
                   drawingProvider,
                   ShapeType.line,
-                  PhosphorIconsLight.lineSegment,
+                  PhosphorIconsRegular.lineSegment,
                   setState,
                 ),
                 _buildShapeButton(
                   drawingProvider,
                   ShapeType.arrow,
-                  PhosphorIconsLight.arrowRight,
+                  PhosphorIconsRegular.arrowRight,
                   setState,
                 ),
                 _buildShapeButton(
                   drawingProvider,
                   ShapeType.triangle,
-                  PhosphorIconsLight.triangle,
+                  PhosphorIconsRegular.triangle,
                   setState,
                 ),
                 _buildShapeButton(
                   drawingProvider,
                   ShapeType.star,
-                  PhosphorIconsLight.star,
+                  PhosphorIconsRegular.star,
                   setState,
                 ),
               ],

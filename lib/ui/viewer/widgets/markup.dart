@@ -91,8 +91,8 @@ class MarkupButton extends StatelessWidget {
         ),
         color: Colors.white,
         child: Container(
-          margin: const EdgeInsets.all(12.0),
-          padding: const EdgeInsets.all(8.0),
+          margin: const EdgeInsets.all(8.0),
+          padding: const EdgeInsets.all(4.0),
           decoration: BoxDecoration(
             color: markerVm.getMarkupColor(markerType).withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),

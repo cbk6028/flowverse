@@ -5,13 +5,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:flutter/foundation.dart';
 import 'package:synchronized/extension.dart';
+import 'dart:ui';
 // import 'package:webf/webf.dart';
 // import '../models/webf.dart';
 
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:crypto/crypto.dart';
 
 // 侧边栏
 // 有大纲，搜索等功能
@@ -22,116 +20,72 @@ class SideBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<ReaderViewModel>();
-    var _index = appState.index;
-
-    Widget buildOutlineList(List<PdfOutlineNode> nodes, {double indent = 0}) {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: nodes.map((node) {
-          final nodeKey = '${node.title}_$indent';
-          final isExpanded = appState.outlineExpandedStates[nodeKey] ?? false;
-          final isCurrentPage = appState.isCurrentPage(node);
-
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+    var index = appState.index;
+    var theme = Theme.of(context);
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          width: 250,
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerLow, // 与阅读器背景颜色一致
+            border: Border(
+              right: BorderSide(
+                color: Colors.grey.withOpacity(0.5),
+                width: 0.5,
+              ),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 8,
+                spreadRadius: 0,
+                offset: const Offset(1, 0),
+              ),
+            ],
+          ),
+          child: Column(
             children: [
-              Container(
-                padding: EdgeInsets.only(
-                  left: 16 + indent,
-                  right: 16,
-                  top: 8,
-                  bottom: 8,
-                ),
-                width: double.infinity,
-                child: Row(
-                  children: [
-                    if (node.children.isNotEmpty)
-                      GestureDetector(
-                        onTap: () {
-                          appState.toggleOutlineNode(nodeKey);
-                        },
-                        child: Icon(
-                          isExpanded
-                              ? PhosphorIconsLight.caretDown
-                              : PhosphorIconsLight.caretRight,
-                          size: 12,
-                          color: CupertinoColors.systemGrey,
-                        ),
-                      ),
-                    SizedBox(width: node.children.isNotEmpty ? 8 : 0),
-                    Expanded(
-                      child: CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        onPressed: node.dest != null
-                            ? () =>
-                                appState.pdfViewerController.goToDest(node.dest)
-                            : null,
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            node.title ?? '',
-                            style: TextStyle(
-                              color: node.dest != null
-                                  ? CupertinoColors.label
-                                  : CupertinoColors.systemGrey,
-                              fontSize: 14,
-                              fontWeight: isCurrentPage
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
+              switch (appState.index) {
+                0 => Expanded(
+                    child: appState.outline != null
+                        ? const Outline()
+                        : Center(
+                            child: Text(
+                              'No outline available',
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurface,
+                                fontSize: 14,
+                              ),
                             ),
                           ),
+                  ),
+                // 1 => const Expanded(child: Center(child: Text('批注'))),
+                2 => Expanded(
+                    child: Center(
+                      child: Text(
+                        '书签',
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface,
+                          fontSize: 14,
                         ),
                       ),
                     ),
-                  ],
-                ),
-              ),
-              if (node.children.isNotEmpty && isExpanded)
-                buildOutlineList(node.children, indent: indent + 20),
+                  ),
+                3 => const Expanded(child: ThumbnailView()),
+                4 => Expanded(
+                    child: Column(
+                      children: [
+                        const SearchBar(),
+                        if (appState.isSearching) const SearchSection()
+                      ],
+                    ),
+                  ),
+                _ => Container(),
+              }
             ],
-          );
-        }).toList(),
-      );
-    }
-
-    return Container(
-      width: 250,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(-1, 0),
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          switch (appState.index) {
-            0 => Expanded(
-                child: appState.outline != null
-                    ? Outline()
-                    : const Center(child: Text('No outline available')),
-              ),
-            // 1 => const Expanded(child: Center(child: Text('批注'))),
-            2 => const Expanded(child: Center(child: Text('书签'))),
-            3 => Expanded(
-                child: ThumbnailView(),
-              ),
-            4 => Expanded(
-                child: Column(
-                  children: [
-                    const SearchBar(),
-                    if (appState.isSearching) const SearchSection()
-                  ],
-                ),
-              ),
-            _ => Container(),
-          }
-        ],
+        ),
       ),
     );
   }
@@ -144,18 +98,32 @@ class SearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<ReaderViewModel>();
-
+    var theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.all(16.0),
-      child: CupertinoSearchTextField(
-        placeholder: '搜索 PDF 内容',
-        onSubmitted: (value) {},
-        onChanged: (value) {
-          if (kDebugMode) {
-            debugPrint('onChanged: $value');
-          }
-          appState.toggleSearch(value);
-        },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.04),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: CupertinoSearchTextField(
+          placeholder: '搜索 PDF 内容',
+          placeholderStyle: TextStyle(
+            color: theme.colorScheme.onSurface,
+            fontSize: 14,
+          ),
+          style: TextStyle(
+            color: Colors.black87.withOpacity(0.75),
+            fontSize: 14,
+          ),
+          onSubmitted: (value) {},
+          onChanged: (value) {
+            if (kDebugMode) {
+              debugPrint('onChanged: $value');
+            }
+            appState.toggleSearch(value);
+          },
+        ),
       ),
     );
   }
@@ -192,7 +160,7 @@ class SideBarSegment extends StatefulWidget {
 }
 
 class _SideBarSegmentState extends State<SideBarSegment> {
-  int? _index = 0;
+  final int _index = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -238,8 +206,8 @@ class Outline extends StatelessWidget {
                         },
                         child: Icon(
                           isExpanded
-                              ? PhosphorIconsLight.caretDown
-                              : PhosphorIconsLight.caretRight,
+                              ? PhosphorIconsRegular.caretDown
+                              : PhosphorIconsRegular.caretRight,
                           size: 12,
                           color: CupertinoColors.systemGrey,
                         ),
@@ -295,7 +263,7 @@ class Outline extends StatelessWidget {
   }
 }
 
-// 
+//
 // 文本搜索视图
 //
 class TextSearchView extends StatefulWidget {
@@ -392,7 +360,7 @@ class _TextSearchViewState extends State<TextSearchView> {
                       _conditionScrollPosition();
                     }
                   : null,
-              child: const Icon(PhosphorIconsLight.arrowLeft),
+              child: const Icon(PhosphorIconsRegular.arrowLeft),
             ),
             CupertinoButton(
               padding: EdgeInsets.zero,
@@ -403,7 +371,7 @@ class _TextSearchViewState extends State<TextSearchView> {
                       _conditionScrollPosition();
                     }
                   : null,
-              child: const Icon(PhosphorIconsLight.arrowRight),
+              child: const Icon(PhosphorIconsRegular.arrowRight),
             ),
 
             // CupertinoButton(
@@ -658,122 +626,352 @@ class PdfPageTextCache {
   }
 }
 
-class LeftSidebar extends StatelessWidget {
+class LeftSidebar extends StatefulWidget {
   const LeftSidebar({super.key});
+
+  @override
+  State<LeftSidebar> createState() => _LeftSidebarState();
+}
+
+class _LeftSidebarState extends State<LeftSidebar> {
+  bool _isVisible = false;
 
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<ReaderViewModel>();
+    var theme = Theme.of(context);
 
-    return Container(
-      width: 45, // Narrow sidebar
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(-1, 0),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          IconButton(
-            icon: Icon(
-              PhosphorIconsLight.magnifyingGlass,
-              color: Colors.black87,
-              size: 20,
+    return Stack(
+      children: [
+        // 实际的侧边栏
+        MouseRegion(
+          onExit: (_) => setState(() => _isVisible = false),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            width: _isVisible ? 37 : 8,
+            child: ClipRRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerLow, // 与阅读器背景颜色一致
+                    border: Border(
+                      right: BorderSide(
+                        color: Colors.grey.withOpacity(0.5),
+                        width: 0.5,
+                      ),
+                    ),
+                  ),
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 200),
+                    opacity: _isVisible ? 1.0 : 0.0,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        // 原有的侧边栏按钮
+                        _buildButton(
+                          icon: PhosphorIconsRegular.magnifyingGlass,
+                          tooltip: '搜索',
+                          onPressed: () => appState.toggleOutline(4),
+                        ),
+                        _buildButton(
+                          icon: PhosphorIconsRegular.list,
+                          tooltip: '目录',
+                          onPressed: () => appState.toggleOutline(0),
+                        ),
+                        _buildButton(
+                          icon: PhosphorIconsRegular.images,
+                          tooltip: '缩略图',
+                          onPressed: () => appState.toggleOutline(3),
+                        ),
+
+                        const Spacer(), // 添加弹性空间，将下面的按钮推到底部
+
+                        // 添加分隔线
+                        Container(
+                          width: 20,
+                          height: 1,
+                          color: Colors.grey.withOpacity(0.3),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // 从底栏移过来的按钮
+                        // 上一页按钮
+                        _buildButton(
+                          icon: PhosphorIconsRegular.caretLeft,
+                          tooltip: '上一页',
+                          onPressed: () => appState.goToPreviousPage(),
+                        ),
+
+                        // 页码显示 - 简化版
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: GestureDetector(
+                            onTap: () {
+                              // 显示页码输入对话框
+                              _showPageInputDialog(context, appState);
+                            },
+                            child: Text(
+                              '${appState.currentPageNumber ?? 0}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: theme.colorScheme.onSurface,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // 下一页按钮
+                        _buildButton(
+                          icon: PhosphorIconsRegular.caretRight,
+                          tooltip: '下一页',
+                          onPressed: () => appState.goToNextPage(),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // 缩小按钮
+                        _buildButton(
+                          icon: PhosphorIconsRegular.minus,
+                          tooltip: '缩小',
+                          onPressed: () => appState.zoomDown(),
+                        ),
+
+                        // 缩放百分比显示
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Text(
+                            '${(appState.pdfViewerController.currentZoom * 100).toInt()}%',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+
+                        // 放大按钮
+                        _buildButton(
+                          icon: PhosphorIconsRegular.plus,
+                          tooltip: '放大',
+                          onPressed: () => appState.zoomUp(),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // 双页模式切换
+                        _buildButton(
+                          icon: appState.isDoublePageMode
+                              ? PhosphorIconsRegular.bookOpenText
+                              : PhosphorIconsRegular.book,
+                          tooltip: '双页模式',
+                          onPressed: () {
+                            appState.isDoublePageMode =
+                                !appState.isDoublePageMode;
+                          },
+                        ),
+                        const SizedBox(height: 16), // 底部间距
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
-            color: Colors.transparent,
-            iconSize: 20,
-            tooltip: '搜索',
-            onPressed: () {
-              // Handle navigation to 搜索
-              appState.toggleOutline(4);
-            },
           ),
-          IconButton(
-            icon: Icon(
-              PhosphorIconsLight.list,
-              color: Colors.black87,
-              size: 20,
+        ),
+        // 透明的检测区域
+        Positioned(
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: 20, // 更宽的检测区域
+          child: MouseRegion(
+            onEnter: (_) => setState(() => _isVisible = true),
+            child: Container(
+              color: Colors.transparent, // 透明区域
             ),
-            color: Colors.transparent,
-            iconSize: 20,
-            tooltip: '目录',
-            onPressed: () {
-              // Handle navigation to 目录
-              appState.toggleOutline(0);
-            },
           ),
-          // IconButton(
-          //   icon: const Icon(Icons.comment_outlined),
-          //   color: Colors.black,
-          //   tooltip: '批注',
-          //   onPressed: () {
-          //     // Handle navigation to 批注
-          //     appState.toggleOutline(1);
-          //   },
-          // ),
-          // IconButton(
-          //   icon: const Icon(Icons.bookmark_outline),
-          //   color: Colors.black,
-          //   tooltip: '书签',
-          //   onPressed: () {
-          //     // Handle navigation to 书签
-          //     appState.toggleOutline(2);
-          //   },
-          // ),
-          IconButton(
-            icon: Icon(
-              PhosphorIconsLight.images,
-              color: Colors.black87,
-              size: 20,
-            ),
-            color: Colors.transparent,
-            iconSize: 20,
-            tooltip: '缩略图',
+        ),
+      ],
+    );
+  }
+
+  // 显示页码输入对话框
+  void _showPageInputDialog(BuildContext context, ReaderViewModel appState) {
+    final TextEditingController controller = TextEditingController();
+    controller.text = (appState.currentPageNumber ?? 0).toString();
+
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('跳转到页面'),
+        content: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: CupertinoTextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            textAlign: TextAlign.center,
+            autofocus: true,
+          ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('取消'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          CupertinoDialogAction(
+            child: const Text('确定'),
             onPressed: () {
-              // Handle navigation to 缩略图
-              appState.toggleOutline(3);
+              try {
+                final pageNumber = int.parse(controller.text);
+                if (pageNumber > 0 && pageNumber <= appState.totalPages) {
+                  appState.pdfViewerController.goToPage(pageNumber: pageNumber);
+                }
+              } catch (e) {
+                // 解析失败，不做任何操作
+              }
+              Navigator.of(context).pop();
             },
           ),
         ],
       ),
     );
   }
+
+  Widget _buildButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+  }) {
+    var theme = Theme.of(context);
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      onPressed: onPressed,
+      child: Container(
+        padding: const EdgeInsets.all(8.0),
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        child: Icon(
+          icon,
+          color: theme.colorScheme.onSurface,
+          size: 16,
+        ),
+      ),
+    );
+  }
 }
 
-
-
 // 缩略图视图
-class ThumbnailView extends StatelessWidget {
+class ThumbnailView extends StatefulWidget {
   const ThumbnailView({super.key});
+
+  @override
+  State<ThumbnailView> createState() => _ThumbnailViewState();
+}
+
+class _ThumbnailViewState extends State<ThumbnailView> {
+  late ScrollController _scrollController;
+  int? _lastPageNumber;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToCurrentPage(int? currentPageNumber, int totalPages) {
+    if (currentPageNumber == null ||
+        currentPageNumber <= 0 ||
+        currentPageNumber > totalPages) {
+      return;
+    }
+
+    // 只有当页面变化时才滚动
+    if (_lastPageNumber != currentPageNumber) {
+      _lastPageNumber = currentPageNumber;
+
+      // 计算目标位置（每个缩略图项目高度约为256像素）
+      final itemHeight = 256.0;
+      final targetOffset = (currentPageNumber - 1) * itemHeight;
+
+      // 使用动画滚动到目标位置
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          targetOffset,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<ReaderViewModel>();
     final document = appState.pdfViewerController.documentRef;
     final controller = appState.pdfViewerController;
+    final currentPageNumber = appState.currentPageNumber;
+    final totalPages = appState.totalPages;
+    var theme = Theme.of(context);
+    // 当页面变化时滚动到当前页面
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToCurrentPage(currentPageNumber, totalPages);
+    });
 
     return Container(
-        color: CupertinoColors.systemGrey6,
-        child: document == null
-            ? const Center(child: Text('没有文档'))
-            : PdfDocumentViewBuilder(
-                documentRef: document!,
-                builder: (context, document) => ListView.builder(
-                  itemCount: document?.pages.length,
-                  itemBuilder: (context, index) {
-                    return Container(
-                      margin: const EdgeInsets.all(8),
-                      height: 240,
-                      child: Column(
-                        children: [
-                          SizedBox(
-                            height: 220,
+      color: Colors.transparent,
+      child: document == null
+          ? Center(
+              child: Text(
+                '没有文档',
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface,
+                  fontSize: 14,
+                ),
+              ),
+            )
+          : PdfDocumentViewBuilder(
+              documentRef: document,
+              builder: (context, document) => ListView.builder(
+                controller: _scrollController,
+                itemCount: document?.pages.length,
+                itemBuilder: (context, index) {
+                  final isCurrentPage = appState.currentPageNumber == index + 1;
+                  return Container(
+                    margin: const EdgeInsets.all(8),
+                    height: 240,
+                    child: Column(
+                      children: [
+                        Container(
+                          height: 200,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            border: isCurrentPage
+                                ? Border.all(
+                                    color: CupertinoColors.systemBlue
+                                        .withOpacity(0.6),
+                                    width: 2,
+                                  )
+                                : Border.all(
+                                    color: Colors.black.withOpacity(0.1),
+                                    width: 1,
+                                  ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.03),
+                                blurRadius: 8,
+                                spreadRadius: 0,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
                             child: CupertinoButton(
                               padding: EdgeInsets.zero,
                               onPressed: () => controller.goToPage(
@@ -787,18 +985,23 @@ class ThumbnailView extends StatelessWidget {
                               ),
                             ),
                           ),
-                          Text(
-                            '第 ${index + 1} 页',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: CupertinoColors.systemGrey,
-                            ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '第 ${index + 1} 页',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isCurrentPage
+                                ? CupertinoColors.systemBlue.withOpacity(0.8)
+                                : theme.colorScheme.onSurface,
                           ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ));
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+    );
   }
 }

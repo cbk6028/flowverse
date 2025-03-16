@@ -1,4 +1,4 @@
-import 'package:flowverse/domain/models/annotation/annotation.dart';
+import 'package:flov/domain/models/annotation/annotation.dart';
 import 'package:flutter/material.dart';
 
 class TextHighlighter extends Annotation {

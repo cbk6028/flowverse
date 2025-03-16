@@ -1,4 +1,4 @@
-package com.example.flowverse
+package com.example.flov
 
 import io.flutter.embedding.android.FlutterActivity
 

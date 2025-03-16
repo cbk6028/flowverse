@@ -1,9 +1,9 @@
 import 'dart:math';
 import 'dart:ui';
-// import 'package:flowverse/view_models/marker_vm.dart';
-import 'package:flowverse/domain/models/annotation/underline.dart';
-import 'package:flowverse/domain/models/tool/tool.dart';
-import 'package:flowverse/config/type.dart';
+// import 'package:flov/view_models/marker_vm.dart';
+import 'package:flov/domain/models/annotation/underline.dart';
+import 'package:flov/domain/models/tool/tool.dart';
+import 'package:flov/config/type.dart';
 import 'package:flutter/material.dart';
 import 'package:pdfrx/pdfrx.dart';
 
@@ -127,8 +127,8 @@ class UnderlineMarkerTool extends MarkerTool {
         break;
 
       case UnderlineStyle.dashed:
-        final dashWidth = 5.0;
-        final dashSpace = 5.0;
+        const dashWidth = 5.0;
+        const dashSpace = 5.0;
         double distance = (end.dx - start.dx);
         double drawn = 0;
 
@@ -141,7 +141,7 @@ class UnderlineMarkerTool extends MarkerTool {
         break;
 
       case UnderlineStyle.dotted:
-        final dotSpace = 4.0;
+        const dotSpace = 4.0;
         double distance = (end.dx - start.dx);
         double drawn = 0;
 
@@ -155,8 +155,8 @@ class UnderlineMarkerTool extends MarkerTool {
         break;
 
       case UnderlineStyle.wavy:
-        final waveWidth = 3.0;
-        final waveHeight = 2.0;
+        const waveWidth = 3.0;
+        const waveHeight = 2.0;
         double distance = end.dx - start.dx;
         int numWaves = (distance / (2 * waveWidth)).floor(); // 计算完整的波浪数
         double remaining = distance - numWaves * (2 * waveWidth); // 剩余部分

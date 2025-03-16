@@ -1,4 +1,4 @@
-import 'package:flowverse/domain/models/tool/stroke.dart';
+import 'package:flov/domain/models/tool/stroke.dart';
 
 enum DrawActionType {
   addStroke,    // 添加笔画

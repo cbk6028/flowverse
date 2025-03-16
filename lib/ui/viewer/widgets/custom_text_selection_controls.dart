@@ -1,14 +1,8 @@
-import 'package:flowverse/domain/models/tool/stroke.dart';
-import 'package:flowverse/ui/maker_overlay/vm/marker_vm.dart';
+import 'package:flov/domain/models/tool/stroke.dart';
+import 'package:flov/ui/overlay_marker/vm/marker_vm.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:provider/provider.dart';
-import 'sidebar.dart';
-import 'reader_screen.dart';
-import '../vm/reader_vm.dart';
 
 class CustomTextSelectionControls extends DesktopTextSelectionControls {
   static const double _kToolbarContentDistance = 8.0;
@@ -65,12 +59,12 @@ class CustomTextSelectionControls extends DesktopTextSelectionControls {
             markerVm.applyMark(MarkerType.highlight);
             delegate.hideToolbar();
           },
-          child: Row(
+          child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(PhosphorIconsLight.highlighter, size: 18),
-              const SizedBox(width: 4),
-              const Text('高亮'),
+              Icon(PhosphorIconsRegular.highlighter, size: 18),
+              SizedBox(width: 4),
+              Text('高亮'),
             ],
           ),
         ),
@@ -80,12 +74,12 @@ class CustomTextSelectionControls extends DesktopTextSelectionControls {
             markerVm.applyMark(MarkerType.underline);
             delegate.hideToolbar();
           },
-          child: Row(
+          child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(PhosphorIconsLight.textUnderline, size: 18),
-              const SizedBox(width: 4),
-              const Text('下划线'),
+              Icon(PhosphorIconsRegular.textUnderline, size: 18),
+              SizedBox(width: 4),
+              Text('下划线'),
             ],
           ),
         ),
@@ -95,12 +89,12 @@ class CustomTextSelectionControls extends DesktopTextSelectionControls {
             markerVm.applyMark(MarkerType.strikethrough);
             delegate.hideToolbar();
           },
-          child: Row(
+          child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(PhosphorIconsLight.textStrikethrough, size: 18),
-              const SizedBox(width: 4),
-              const Text('删除线'),
+              Icon(PhosphorIconsRegular.textStrikethrough, size: 18),
+              SizedBox(width: 4),
+              Text('删除线'),
             ],
           ),
         ),
@@ -110,12 +104,12 @@ class CustomTextSelectionControls extends DesktopTextSelectionControls {
             delegate.copySelection(SelectionChangedCause.toolbar);
             delegate.hideToolbar();
           },
-          child: Row(
+          child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(PhosphorIconsLight.copy, size: 18),
-              const SizedBox(width: 4),
-              const Text('复制'),
+              Icon(PhosphorIconsRegular.copy, size: 18),
+              SizedBox(width: 4),
+              Text('复制'),
             ],
           ),
         ),
@@ -129,12 +123,12 @@ class CustomTextSelectionControls extends DesktopTextSelectionControls {
           onPressed: () {
             
           },
-          child: Row(
+          child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(PhosphorIconsLight.translate, size: 18),
-              const SizedBox(width: 4),
-              const Text('翻译'),
+              Icon(PhosphorIconsRegular.translate, size: 18),
+              SizedBox(width: 4),
+              Text('翻译'),
             ],
           ),
         ),

@@ -1,9 +1,9 @@
 import 'dart:math';
 import 'dart:ui';
-// import 'package:flowverse/view_models/marker_vm.dart';
-import 'package:flowverse/domain/models/tool/tool.dart';
+// import 'package:flov/view_models/marker_vm.dart';
+import 'package:flov/domain/models/tool/tool.dart';
 import 'package:flutter/material.dart';
-import 'package:flowverse/domain/models/tool/stroke.dart';
+import 'package:flov/domain/models/tool/stroke.dart';
 
 enum ShapeType {
   line, // 直线
@@ -106,8 +106,8 @@ class Shape extends Tool {
 
         // 计算箭头
         final angle = atan2(end.dy - start.dy, end.dx - start.dx);
-        final arrowLength = 20.0; // 箭头长度
-        final arrowAngle = pi / 6; // 箭头角度 (30度)
+        const arrowLength = 20.0; // 箭头长度
+        const arrowAngle = pi / 6; // 箭头角度 (30度)
 
         final path = Path();
         path.moveTo(end.dx, end.dy);
@@ -134,10 +134,11 @@ class Shape extends Tool {
           double angle = 2 * pi * i / 5 - pi / 2;
           double x = center.dx + radius * cos(angle);
           double y = center.dy + radius * sin(angle);
-          if (i == 0)
+          if (i == 0) {
             path.moveTo(x, y);
-          else
+          } else {
             path.lineTo(x, y);
+          }
 
           angle += pi / 5;
           x = center.dx + (radius / 2) * cos(angle);

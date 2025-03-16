@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:flowverse/domain/models/book/book.dart';
+import 'package:flov/domain/models/book/book.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
